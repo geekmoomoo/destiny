@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Download, Sparkles, Share2, Palette, Hash, Compass, Key, EyeOff, MessageCircle, Send, X, Lock } from 'lucide-react';
+import { RefreshCw, Download, Sparkles, Share2, Palette, Hash, Compass, Key, MessageCircle, Send, X } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { GeneratedDestiny, FortuneCategory } from '../types';
 import { chatWithOracle } from '../utils/aiService';
@@ -20,12 +20,16 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
   const frontRef = useRef<HTMLDivElement>(null);
   const exportRef = useRef<HTMLDivElement>(null); 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const revealedRef = useRef(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isScratching, setIsScratching] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isImageError, setIsImageError] = useState(false);
+  const [showTiltGuide, setShowTiltGuide] = useState(false);
   
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -35,35 +39,119 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
 
   if (!destiny) return null;
 
+  useEffect(() => {
+    setIsImageLoaded(false);
+    setIsImageError(false);
+    setIsRevealed(false);
+    setIsFlipped(false);
+    setIsScratching(false);
+    revealedRef.current = false;
+  }, [destiny]);
+
+  // --- IMAGE PRELOAD (ensure onLoad fires for base64) ---
+  useEffect(() => {
+    if (!destiny?.imageBase64) return;
+    setIsImageLoaded(false);
+    setIsImageError(false);
+
+    const img = new Image();
+    const timer = setTimeout(() => setIsImageError(true), 10000); // fail safe
+
+    img.onload = () => { clearTimeout(timer); setIsImageLoaded(true); };
+    img.onerror = () => { clearTimeout(timer); setIsImageError(true); };
+    img.src = destiny.imageBase64;
+
+    return () => {
+      clearTimeout(timer);
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [destiny?.imageBase64]);
+
   // --- SCRATCH EFFECT ---
   useEffect(() => {
+    if (!isImageLoaded) return;
     const canvas = canvasRef.current;
     const container = frontRef.current;
     if (!canvas || !container) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const { width, height } = container.getBoundingClientRect();
-    canvas.width = width; canvas.height = height;
-    
-    // Dark Cover
-    ctx.fillStyle = '#0a0a12'; 
-    ctx.fillRect(0, 0, width, height);
-    
-    // Mystic Pattern
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    for(let i=0; i<100; i++) { ctx.beginPath(); ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 1.5, 0, Math.PI * 2); ctx.fill(); }
-  }, [destiny]);
+
+    const drawMask = () => {
+      const { width, height } = container.getBoundingClientRect();
+      canvas.width = width; canvas.height = height;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = '#0a0a12'; 
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      for(let i=0; i<120; i++) { ctx.beginPath(); ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 1.5, 0, Math.PI * 2); ctx.fill(); }
+    };
+
+    drawMask();
+    const handleResize = () => {
+      if (revealedRef.current) {
+        const { width, height } = container.getBoundingClientRect();
+        canvas.width = width; canvas.height = height;
+        return;
+      }
+      drawMask();
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [destiny, isImageLoaded]);
+
+  useEffect(() => { revealedRef.current = isRevealed; }, [isRevealed]);
+
+  // --- TILT NUDGE ---
+  useEffect(() => {
+    if (isRevealed) {
+      setShowTiltGuide(true);
+      const t = setTimeout(() => setShowTiltGuide(false), 1600);
+      return () => clearTimeout(t);
+    } else {
+      setShowTiltGuide(false);
+    }
+  }, [isRevealed]);
 
   const handleScratch = (clientX: number, clientY: number) => {
-    const canvas = canvasRef.current; if (!canvas || isRevealed) return;
+    const canvas = canvasRef.current; if (!canvas || isRevealed || !isImageLoaded) return;
     const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext('2d');
     if (ctx) {
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
       ctx.globalCompositeOperation = 'destination-out'; ctx.beginPath();
-      ctx.arc(clientX - rect.left, clientY - rect.top, 40, 0, Math.PI * 2); ctx.fill();
+      ctx.arc(x, y, 40, 0, Math.PI * 2); ctx.fill();
       checkReveal();
     }
   };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isImageLoaded) return;
+    e.preventDefault();
+    setIsScratching(true);
+    handleScratch(e.clientX, e.clientY);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isScratching) return;
+    e.preventDefault();
+    handleScratch(e.clientX, e.clientY);
+  };
+
+  const handlePointerUp = () => setIsScratching(false);
+
+  useEffect(() => {
+    const stop = () => setIsScratching(false);
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+    return () => {
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+    };
+  }, []);
 
   const checkReveal = () => {
     const canvas = canvasRef.current; if (!canvas) return;
@@ -87,7 +175,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
         });
         const link = document.createElement('a'); link.download = `Destiny_Card.png`;
         link.href = canvas.toDataURL('image/png'); link.click();
-    } catch(e) { alert('저장 실패'); }
+    } catch(e) { alert('저장에 실패했어요'); }
     
     exportRef.current.style.display = 'none'; // Hide again
     setIsSaving(false);
@@ -118,79 +206,86 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
   };
 
   return (
-    <div className="flex flex-col items-center w-full h-full overflow-y-auto custom-scrollbar relative pb-40 pt-6">
+    <div className="flex flex-col items-center w-full h-full overflow-y-auto custom-scrollbar relative pb-40 pt-6 bg-[#050508]">
       
-      <div className="h-10 mb-4 text-center z-10">
-         <AnimatePresence mode="wait">
-            {isRevealed ? (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <h3 className="text-gold-300 text-[10px] tracking-[0.3em] uppercase">ORACLE REVEALED</h3>
-                </motion.div>
-            ) : (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                     <p className="text-white/50 text-xs tracking-widest animate-pulse">화면을 문질러 운명을 확인하세요</p>
-                </motion.div>
-            )}
-         </AnimatePresence>
-      </div>
-
       {/* --- 3D CARD CONTAINER (Interactive) --- */}
-      <div className="relative w-[85vw] max-w-[320px] aspect-[9/16] perspective-1000 cursor-pointer z-20 mb-8" onClick={() => isRevealed && setIsFlipped(!isFlipped)}>
+      <div className="relative w-[90vw] sm:w-[80vw] max-w-[360px] md:max-w-[440px] lg:max-w-[520px] aspect-[9/16] perspective-1000 cursor-pointer z-20 mb-6" onClick={() => isRevealed && setIsFlipped(!isFlipped)}>
         
         <AnimatePresence>
-            {!isRevealed && (
+            {!isRevealed && isImageLoaded && (
                 <motion.canvas ref={canvasRef} className="absolute inset-0 z-50 rounded-2xl shadow-2xl touch-none cursor-crosshair"
                     initial={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.05, filter: 'blur(10px)', transition: { duration: 1.5 } }}
-                    onMouseDown={() => setIsScratching(true)} onMouseUp={() => setIsScratching(false)}
-                    onMouseMove={(e) => isScratching && handleScratch(e.nativeEvent.offsetX, e.nativeEvent.offsetY)}
-                    onTouchMove={(e) => {
-                        const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
-                        handleScratch(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
-                    }}
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerLeave={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
                 />
             )}
         </AnimatePresence>
 
+        {/* Scratch guide */}
+        {!isRevealed && isImageLoaded && (
+          <div className="absolute inset-0 z-[70] flex items-center justify-center pointer-events-none">
+            <div className="bg-black/70 px-5 py-2 rounded-full border border-white/20 text-[12px] tracking-[0.15em] text-white shadow-lg shadow-black/40">
+              터치하여 이미지를 살펴보세요
+            </div>
+          </div>
+        )}
+        {isRevealed && showTiltGuide && (
+          <div className="absolute inset-0 z-[70] flex items-center justify-center pointer-events-none">
+            <div className="bg-black/70 px-5 py-2 rounded-full border border-white/20 text-[12px] tracking-[0.15em] text-white shadow-lg shadow-black/40">
+              터치하여 해석보기
+            </div>
+          </div>
+        )}
+
+        {!isImageLoaded && !isImageError && (
+          <div className="absolute inset-0 z-40 rounded-2xl bg-black/70 border border-white/5 flex flex-col items-center justify-center gap-3 text-white/70 text-sm">
+            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <p className="text-xs tracking-widest uppercase">Generating Image...</p>
+          </div>
+        )}
+        {isImageError && (
+          <div className="absolute inset-0 z-40 rounded-2xl bg-black/70 border border-red-500/20 flex flex-col items-center justify-center gap-2 text-red-200 text-sm text-center px-4">
+            <p>이미지를 불러오지 못했어요.</p>
+            <p className="text-xs text-white/60">다시 시도하거나 인터넷 연결을 확인해주세요.</p>
+          </div>
+        )}
+
         <motion.div 
             ref={cardRef} 
-            className="relative w-full h-full preserve-3d"
-            animate={{ rotateY: isFlipped ? 180 : 0 }} 
-            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="relative w-full h-full"
+            style={{ transformStyle: 'preserve-3d' }}
+            animate={{ 
+              rotateY: isFlipped ? 180 : 0,
+              rotateZ: showTiltGuide ? [-8, 8, 0] : 0
+            }} 
+            transition={{ duration: showTiltGuide ? 1.2 : 0.8, ease: "easeInOut" }}
         >
-          {/* --- FRONT: DISPLAY CARD (Same as Export) --- */}
-          <div ref={frontRef} className="absolute inset-0 backface-hidden rounded-2xl overflow-hidden shadow-2xl bg-[#0a0a12] border-4 border-[#1a1a2e]">
-             <div className="absolute inset-0 flex flex-col">
-                {/* Image Part (Top 70%) */}
-                <div className="relative h-[70%] w-full overflow-hidden border-b border-gold-500/20">
-                    <img src={destiny.imageBase64} alt="Destiny" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a12] via-transparent to-transparent opacity-50" />
-                </div>
-                
-                {/* Text Part (Bottom 30%) */}
-                <div className="flex-1 bg-[#0a0a12] p-6 flex flex-col items-center justify-center text-center relative">
-                    <div className="absolute -top-6">
-                        <div className="w-10 h-10 bg-[#0a0a12] border border-gold-500/30 rounded-full flex items-center justify-center">
-                            <Sparkles className="w-5 h-5 text-gold-300" />
-                        </div>
-                    </div>
-                    
-                    <p className="text-white/90 font-serif text-sm md:text-base leading-relaxed tracking-wide break-keep">
-                        "{destiny.fortuneText}"
-                    </p>
-                    
-                    <div className="mt-4 flex flex-col items-center gap-1 opacity-50">
-                        <div className="w-8 h-[1px] bg-gold-500/50" />
-                        <span className="text-[8px] tracking-[0.3em] text-gold-100 uppercase">Destiny Generated</span>
-                    </div>
-                </div>
-             </div>
-             
-             {/* Inner Gold Border */}
-             <div className="absolute inset-2 rounded-xl border border-gold-500/20 pointer-events-none" />
+          {/* --- FRONT: IMAGE ONLY --- */}
+          <div
+            ref={frontRef}
+            className="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl bg-[#0a0a12] border-4 border-[#1a1a2e]"
+            style={{ backfaceVisibility: 'hidden' }}
+          >
+            <div className="absolute inset-0">
+                <img 
+                  src={destiny.imageBase64} 
+                  alt="Destiny" 
+                  className="w-full h-full object-cover scale-[1.02]"
+                  onLoad={() => setIsImageLoaded(true)}
+                  onError={() => { setIsImageError(true); setIsImageLoaded(false); }}
+                />
+            </div>
+            <div className="absolute inset-2 rounded-xl border border-gold-500/20 pointer-events-none" />
           </div>
 
           {/* --- BACK: DETAILS --- */}
-          <div className="absolute inset-0 backface-hidden rounded-2xl bg-[#0f0f1a] border border-white/10 shadow-2xl overflow-hidden" style={{ transform: 'rotateY(180deg)' }}>
+          <div
+            className="absolute inset-0 rounded-2xl bg-[#0f0f1a] border border-white/10 shadow-2xl overflow-hidden"
+            style={{ transform: 'rotateY(180deg)', backfaceVisibility: 'hidden' }}
+          >
              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20" />
              <div className="relative h-full flex flex-col p-6 overflow-y-auto custom-scrollbar">
                 <div className="text-center mb-6 pt-4">
@@ -212,60 +307,61 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
         </motion.div>
       </div>
 
+      {/* --- TEXT PANEL (after reveal) --- */}
+      {isRevealed && (
+        <div className="w-full max-w-[520px] px-6 text-center space-y-3 mb-8">
+            <p className="text-white/90 font-serif text-sm md:text-base leading-relaxed tracking-wide break-keep">
+                "{destiny.fortuneText}"
+            </p>
+            <div className="flex flex-col items-center gap-1 opacity-70">
+                <div className="w-10 h-[1px] bg-gold-500/70" />
+                <span className="text-[9px] tracking-[0.32em] text-gold-100 uppercase">Destiny Generated</span>
+            </div>
+        </div>
+      )}
+
       {/* --- HIDDEN EXPORT CARD (The Artifact) --- */}
       <div 
         ref={exportRef} 
-        style={{ display: 'none', width: '600px', height: '1000px' }} 
-        className="bg-[#0a0a12]"
+        style={{ display: 'none' }} 
+        className="bg-[#0a0a12] w-full flex flex-col items-center"
       >
-         <div className="w-full h-full relative flex flex-col border-[24px] border-[#151520]">
-            {/* Image Area */}
-            <div className="h-[700px] w-full relative overflow-hidden border-b-4 border-[#2a2a3d]">
+         <div className="w-full max-w-[520px]">
+            <div className="relative w-full aspect-[9/16] rounded-2xl overflow-hidden border-4 border-[#1a1a2e] shadow-2xl">
                 <img src={destiny.imageBase64} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a12] via-transparent to-transparent opacity-40" />
+                <div className="absolute inset-2 rounded-xl border border-gold-500/20 pointer-events-none" />
             </div>
-
-            {/* Text Area */}
-            <div className="flex-1 bg-[#0a0a12] flex flex-col items-center justify-center p-10 text-center relative">
-                <div className="absolute -top-10 w-20 h-20 bg-[#0a0a12] rounded-full border-4 border-[#2a2a3d] flex items-center justify-center">
-                    {/* Simple SVG Star icon for export compatibility */}
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="2">
-                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                    </svg>
-                </div>
-                
-                <p className="text-white font-serif text-2xl leading-relaxed tracking-wide break-keep px-4 mt-6">
+            <div className="w-full px-6 text-center space-y-3 mt-6 mb-10">
+                <p className="text-white font-serif text-base leading-relaxed tracking-wide break-keep">
                     "{destiny.fortuneText}"
                 </p>
-                
-                <div className="mt-8 flex flex-col items-center gap-2 opacity-60">
-                    <div className="w-16 h-[1px] bg-[#d4af37]" />
-                    <span className="text-sm tracking-[0.4em] text-[#d4af37] uppercase font-sans">Destiny Generated</span>
+                <div className="flex flex-col items-center gap-1 opacity-70">
+                    <div className="w-10 h-[1px] bg-gold-500/70" />
+                    <span className="text-[9px] tracking-[0.32em] text-gold-100 uppercase">Destiny Generated</span>
                 </div>
             </div>
-
-            {/* Inner Gold Line */}
-            <div className="absolute inset-4 border border-[#d4af37] opacity-30 rounded-lg pointer-events-none" />
          </div>
       </div>
 
       {/* --- ACTION BUTTONS --- */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={isRevealed ? { opacity: 1, y: 0 } : { opacity: 0 }}
-        className="flex flex-wrap justify-center gap-3 z-30 w-full max-w-md mb-20 px-4"
-      >
-        <button onClick={handleOpenChat} className="glass-button flex-1 py-3 rounded-full flex items-center justify-center gap-2 text-purple-300 border-purple-500/30 hover:bg-purple-500/10">
-            <MessageCircle className="w-4 h-4" /> <span className="text-xs font-bold tracking-widest">CHAT</span>
-        </button>
-        <button onClick={handleDownload} disabled={isSaving} className="glass-button flex-1 py-3 rounded-full flex items-center justify-center gap-2 text-gold-200 border-gold-500/30 hover:bg-gold-500/10">
-            <Download className="w-4 h-4" /> <span className="text-xs font-bold tracking-widest">SAVE</span>
-        </button>
-        <div className="flex gap-2">
-            <ControlButton icon={RefreshCw} onClick={onRetry} />
-            <ControlButton icon={Share2} onClick={handleShare} />
-        </div>
-      </motion.div>
+      {isRevealed && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-wrap justify-center gap-3 z-30 w-full max-w-md mb-20 px-4"
+        >
+          <button onClick={handleOpenChat} className="glass-button flex-1 py-3 rounded-full flex items-center justify-center gap-2 text-purple-300 border-purple-500/30 hover:bg-purple-500/10">
+              <MessageCircle className="w-4 h-4" /> <span className="text-xs font-bold tracking-widest">CHAT</span>
+          </button>
+          <button onClick={handleDownload} disabled={isSaving} className="glass-button flex-1 py-3 rounded-full flex items-center justify-center gap-2 text-gold-200 border-gold-500/30 hover:bg-gold-500/10">
+              <Download className="w-4 h-4" /> <span className="text-xs font-bold tracking-widest">SAVE</span>
+          </button>
+          <div className="flex gap-2">
+              <ControlButton icon={RefreshCw} onClick={onRetry} />
+              <ControlButton icon={Share2} onClick={handleShare} />
+          </div>
+        </motion.div>
+      )}
 
       {/* --- CHAT MODAL --- */}
       <AnimatePresence>
@@ -280,9 +376,8 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
                     className="bg-[#0a0a12] w-full md:max-w-md md:rounded-2xl rounded-t-2xl border-t md:border border-white/10 h-[60vh] flex flex-col shadow-2xl overflow-hidden"
                     onClick={e => e.stopPropagation()}
                 >
-                    {/* Chat UI omitted for brevity, same as before */}
                     <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
-                        <h3 className="text-sm font-bold text-white">오라클의 속삭임 <span className="text-gold-400 text-xs ml-2">({questionsLeft}/3)</span></h3>
+                        <h3 className="text-sm font-bold text-white">오라클의 사후질의<span className="text-gold-400 text-xs ml-2">({questionsLeft}/3)</span></h3>
                         <button onClick={() => setIsChatOpen(false)}><X className="w-5 h-5 text-white/50" /></button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
