@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { EffectCoverflow, Pagination, Keyboard, Mousewheel } from 'swiper/modules';
@@ -37,6 +37,15 @@ const CARD_GRADIENTS: Record<string, { start: string; end: string }> = {
   career: { start: '#60a5fa', end: '#2563eb' },
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  general: '#7dd3fc', // cyan
+  love: '#f472b6',    // pink
+  wealth: '#fbbf24',  // amber
+  social: '#22d3ee',  // cyan
+  growth: '#4ade80',  // green
+  career: '#93c5fd'   // light blue
+};
+
 const TAROT_DECK = [
   '/cards/the_fool_crop.jpg',
   '/cards/the_magician_crop.jpg',
@@ -50,8 +59,34 @@ const TAROT_DECK = [
 ];
 
 const CategorySelectionScreen: React.FC<CategorySelectionScreenProps> = ({ onSelect }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeProgress, setActiveProgress] = useState(1); // 1 when centered, fades when moving
+
+  // Shuffle once per load to avoid duplicate images on the same render
+  const slideImages = useMemo(() => {
+    const shuffled = [...TAROT_DECK].sort(() => Math.random() - 0.5);
+    const total = FORTUNE_CATEGORIES.length;
+    const pooled: string[] = [];
+    for (let i = 0; i < total; i++) {
+      pooled.push(shuffled[i % shuffled.length]);
+    }
+    return pooled;
+  }, []);
+
+  const activeCategory = FORTUNE_CATEGORIES[activeIndex % FORTUNE_CATEGORIES.length];
+
+  const handleProgress = (_swiper: any, progress?: number) => {
+    if (typeof progress !== 'number' || Number.isNaN(progress)) {
+      setActiveProgress(1);
+      return;
+    }
+    const diff = Math.min(1, Math.abs(progress - Math.round(progress)));
+    const fade = Math.max(0, 1 - diff * 1.4);
+    setActiveProgress(fade);
+  };
+
   return (
-    <div className="flex flex-col items-center w-full h-full px-4 pt-10 pb-32 overflow-y-auto custom-scrollbar relative z-20">
+    <div className="flex flex-col items-center w-full h-full px-4 pt-14 md:pt-16 pb-28 md:pb-36 overflow-y-auto custom-scrollbar relative z-20">
       
       <motion.div
         initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2 }}
@@ -75,37 +110,56 @@ const CategorySelectionScreen: React.FC<CategorySelectionScreenProps> = ({ onSel
             stretch: 0,
             depth: 260,
             modifier: 2.4,
-            slideShadows: true
+            slideShadows: false
           }}
           keyboard={{ enabled: true }}
           mousewheel={{ thresholdDelta: 10 }}
-          spaceBetween={60}
+          spaceBetween={12}
           loop
           pagination={{ clickable: true }}
+          onSwiper={(swiper) => {
+            setActiveIndex(swiper.realIndex || 0);
+            setActiveProgress(1);
+          }}
+          onSlideChange={(swiper) => {
+            setActiveIndex(swiper.realIndex || 0);
+          }}
+          onSlideChangeTransitionEnd={() => setActiveProgress(1)}
+          onProgress={handleProgress}
           modules={[EffectCoverflow, Pagination, Keyboard, Mousewheel]}
           className="swiper-root"
         >
-          {FORTUNE_CATEGORIES.map((cat) => {
+          {FORTUNE_CATEGORIES.map((cat, index) => {
             const grad = CARD_GRADIENTS[cat.id] || { start: '#0ea5e9', end: '#6366f1' };
-            const randomImage = TAROT_DECK[Math.floor(Math.random() * TAROT_DECK.length)];
+            const cardImage = slideImages[index];
             return (
               <SwiperSlide key={cat.id} className="category-slide">
                 <button
                   onClick={() => onSelect(cat)}
                   className="category-slide-card"
-                  style={{
-                    backgroundImage: `linear-gradient(to top, rgba(6,8,18,0.14), rgba(12,14,20,0.4)), url(${randomImage || `linear-gradient(135deg, ${grad.start}, ${grad.end})`})`
-                  }}
                 >
-                  <div className="category-slide-content">
-                    <span>{cat.name}</span>
-                    <h3>{cat.description}</h3>
+                  <div className="category-slide-img">
+                    <img src={cardImage || `https://dummyimage.com/400x700/${grad.start.slice(1)}/${grad.end.slice(1)}`} alt={cat.name} loading="lazy" />
                   </div>
                 </button>
               </SwiperSlide>
             );
           })}
         </Swiper>
+
+        {activeCategory && (
+          <div
+            className="category-active-text"
+            style={{
+              opacity: Math.max(0.35, activeProgress),
+              color: CATEGORY_COLORS[activeCategory.id] || '#c7a6ff',
+              textShadow: `0 0 12px ${(CATEGORY_COLORS[activeCategory.id] || '#c7a6ff')}90`
+            }}
+          >
+            <div className="category-active-title">{activeCategory.name}</div>
+            <div className="category-active-sub" style={{ color: '#ffffff' }}>{activeCategory.description}</div>
+          </div>
+        )}
       </motion.div>
     </div>
   );

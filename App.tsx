@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Volume2, VolumeX, History, Sparkles, X, LogIn, LogOut, User as UserIcon, Loader2, CheckCircle, AlertCircle, ExternalLink, Copy, BrainCircuit, Fingerprint, Zap } from 'lucide-react'; 
 import LandingScreen from './components/LandingScreen';
@@ -278,19 +278,20 @@ const App: React.FC = () => {
   }, [currentStep, selectedCategory]);
 
   useEffect(() => {
-    if (currentStep !== 'playing' || !selectedCategory) return;
+    if (currentStep !== "playing" || !selectedCategory) return;
     const styles = generateCategoryStyles(selectedCategory).slice(0, 4);
-    let title = "", desc = "", txts: string[] = [];
+    let title = "", desc = "", txts: string[] = [], summaries: string[] = [];
     if (aiSessionData && aiSessionData[currentRound - 1]) {
-        const d = aiSessionData[currentRound - 1]; title = d.title; desc = d.question; txts = d.cardTexts;
+        const d = aiSessionData[currentRound - 1]; title = d.title; desc = d.question; txts = d.cardTexts; summaries = d.cardSummaries || [];
         setSessionThemes(p => { const n = [...p]; n[currentRound-1] = {title, desc}; return n; });
     } else {
         const f = getGameThemes()[currentRound - 1]; title = f.title; desc = selectedCategory.focusQuestions[currentRound-1] || f.desc;
         txts = generateRoundTexts(currentRound, 4, selectedCategory.id);
+        summaries = txts;
     }
     setCurrentRoundInfo({
         roundNumber: currentRound, title, description: desc,
-        cards: styles.map((s, i) => ({ ...s, id: `${s.id}_r${currentRound}`, text: txts[i] || "운명" }))
+        cards: styles.map((s, i) => ({ ...s, id: `${s.id}_r${currentRound}`, text: txts[i] || "고요", summary: summaries[i] || "" }))
     });
   }, [currentRound, currentStep, selectedCategory, aiSessionData]);
 
@@ -457,3 +458,4 @@ const AboutItem = ({ icon: Icon, title, desc }: any) => (
 );
 
 export default App;
+

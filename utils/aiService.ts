@@ -1,4 +1,4 @@
-import { GoogleGenAI, Modality, Type } from "@google/genai";
+﻿import { GoogleGenAI, Modality, Type } from "@google/genai";
 import { GeneratedDestiny, Theme, FortuneCategory, RoundContent, LuckyPrescription } from "../types";
 
 // --- ROBUST API KEY RETRIEVAL ---
@@ -20,7 +20,7 @@ const apiKey = getApiKey();
 const ai = new GoogleGenAI({ apiKey: apiKey || "dummy_key_for_init" });
 
 if (!apiKey) {
-  console.warn("⚠️ API Key is missing. AI features will use fallback data.");
+  console.warn("?좑툘 API Key is missing. AI features will use fallback data.");
 }
 
 // --- HELPER: IMAGE COMPRESSION (HIGH QUALITY) ---
@@ -82,6 +82,29 @@ function getRandomVisualSeeds(count: number = 3): string {
   return shuffled.slice(0, count).join(", ");
 }
 
+// --- CLEANUP FOR CARD TEXTS ---
+const IMPERATIVE_PATTERNS = [
+  /더\s*깊[이히]\s*(느껴보세요|바라보세요|바라보라|살펴보세요|들여다보세요)/gi,
+  /\s*(보세요|바라보라|바라보세요|느껴보세요)$/gi
+];
+
+function sanitizeCardText(text: string): string {
+  if (!text) return "";
+  let cleaned = text;
+  for (const re of IMPERATIVE_PATTERNS) {
+    cleaned = cleaned.replace(re, "");
+  }
+  cleaned = cleaned.replace(/[.?!]+$/, "").trim();
+  return cleaned || "고요한 기운";
+}
+
+function sanitizeSummary(text: string): string {
+  if (!text) return "";
+  let cleaned = text.replace(/[.?!]+$/, "").trim();
+  if (cleaned.length > 30) cleaned = cleaned.slice(0, 30) + "…";
+  return cleaned || "짧은 속삭임";
+}
+
 // --- MAIN FUNCTIONS ---
 
 export async function generateGameSession(category: FortuneCategory): Promise<RoundContent[]> {
@@ -105,11 +128,13 @@ export async function generateGameSession(category: FortuneCategory): Promise<Ro
       Round 4: The Destiny (Final Answer)
       
       Requirements: 
-      - Language: Korean (한국어).
+      - Language: Korean.
       - Tone: Extremely mystical, poetic, deep, slightly archaic but understandable.
-      - For 'cardTexts', provide 4 distinct, short, metaphoric phrases (max 15 chars) that sound like ancient whispers.
+      - For 'question', write ONE concise sentence (no multiple questions chained).
+      - For 'cardTexts', give 4 distinct, short metaphoric noun or declarative phrases (max 15 chars) that ANSWER the question directly (예: "바다가 흐르듯", "은빛 안개줄기", "담금질된 검"). 금지: "~보세요", "~바라보라", "~느껴보세요", 물음표. 문장 끝은 평서형/명사형으로.
+      - For 'cardSummaries', give 4 one-line summaries (max 40 chars) explaining briefly why that cardText appears / what it hints at. Tone: 서정적 설명, 평서문.
       
-      Output JSON Schema: Array of 4 objects (roundNumber, title, question, cardTexts).
+      Output JSON Schema: Array of 4 objects (roundNumber, title, question, cardTexts, cardSummaries).
       `,
       config: {
         responseMimeType: "application/json",
@@ -121,7 +146,8 @@ export async function generateGameSession(category: FortuneCategory): Promise<Ro
               roundNumber: { type: Type.INTEGER },
               title: { type: Type.STRING },
               question: { type: Type.STRING },
-              cardTexts: { type: Type.ARRAY, items: { type: Type.STRING } }
+              cardTexts: { type: Type.ARRAY, items: { type: Type.STRING } },
+              cardSummaries: { type: Type.ARRAY, items: { type: Type.STRING } }
             },
             required: ["roundNumber", "title", "question", "cardTexts"]
           }
@@ -131,7 +157,12 @@ export async function generateGameSession(category: FortuneCategory): Promise<Ro
 
     const jsonString = response.text;
     if (!jsonString) throw new Error("Empty response from AI");
-    return JSON.parse(jsonString) as RoundContent[];
+    const parsed = JSON.parse(jsonString) as RoundContent[];
+    return parsed.map(item => ({
+      ...item,
+      cardTexts: (item.cardTexts || []).map((txt: string) => sanitizeCardText(txt)),
+      cardSummaries: (item.cardSummaries || (item.cardTexts || [])).map((txt: string) => sanitizeSummary(txt))
+    }));
 
   } catch (error) {
     console.warn("Game Session Generation Failed. Using Fallback.", error);
@@ -145,7 +176,7 @@ async function generateFortuneText(themes: Theme[], category: FortuneCategory): 
   const themeContext = themes.map(t => t.title).join(" -> ");
   const isPositive = Math.random() > 0.3;
   const sentiment = isPositive ? 'positive' : 'cautionary';
-  const tone = isPositive ? "희망차고 밝은, 긍정적인 에너지" : "직설적이고, 조심해야 할 부분을 짚어주는, 경고와 조언";
+  const tone = isPositive ? "?щ쭩李④퀬 諛앹?, 湲띿젙?곸씤 ?먮꼫吏" : "吏곸꽕?곸씠怨? 議곗떖?댁빞 ??遺遺꾩쓣 吏싳뼱二쇰뒗, 寃쎄퀬? 議곗뼵";
 
   try {
     const response = await ai.models.generateContent({
@@ -160,7 +191,7 @@ async function generateFortuneText(themes: Theme[], category: FortuneCategory): 
       Part 1 (shortFortune): A single, impactful, mystical sentence that sounds like a prophecy.
       Part 2 (longInterpretation): A detailed, empathetic essay (20-30 sentences). Use metaphors of nature, cosmos, and light.
       Part 3 (luckyPrescription): luckyColor, luckyNumber, luckyDirection, luckyItem.
-      Language: Korean. Output Format: JSON.
+            - Language: Korean.
       `,
       config: {
         responseMimeType: "application/json",
@@ -188,8 +219,8 @@ async function generateFortuneText(themes: Theme[], category: FortuneCategory): 
     
     const result = JSON.parse(response.text!);
     return {
-        short: result.shortFortune || "당신의 앞길에 밝은 빛이 비칩니다.",
-        long: result.longInterpretation || "운명의 별이 당신을 지켜보고 있습니다.",
+        short: result.shortFortune || "?뱀떊???욊만??諛앹? 鍮쏆씠 鍮꾩묩?덈떎.",
+        long: result.longInterpretation || "?대챸??蹂꾩씠 ?뱀떊??吏耳쒕낫怨??덉뒿?덈떎.",
         prescription: {
             color: result.luckyPrescription?.luckyColor || "Gold",
             number: result.luckyPrescription?.luckyNumber || "7",
@@ -272,7 +303,7 @@ export async function chatWithOracle(
     userMessage: string, 
     fortuneContext: string
 ): Promise<string> {
-    if (!apiKey) return "별들의 목소리가 닿지 않습니다. (API Key Error)";
+    if (!apiKey) return "蹂꾨뱾??紐⑹냼由ш? ?우? ?딆뒿?덈떎. (API Key Error)";
 
     try {
         const chat = ai.chats.create({
@@ -284,7 +315,7 @@ export async function chatWithOracle(
                 
                 Your task: Answer the user's follow-up question briefly, wisely, and mysteriously.
                 - Keep answers under 3 sentences.
-                - Use a poetic, empathetic, slightly archaic Korean tone (e.g., "~합니다", "~군요").
+                - Use a poetic, empathetic, slightly archaic Korean tone (e.g., "~?⑸땲??, "~援곗슂").
                 - Focus on the user's inner growth and the flow of destiny.
                 - Do NOT repeat the full reading. Just address the specific question.
                 `
@@ -296,9 +327,9 @@ export async function chatWithOracle(
         });
 
         const result = await chat.sendMessage({ message: userMessage });
-        return result.text || "침묵만이 흐릅니다...";
+        return result.text || "移⑤У留뚯씠 ?먮쫭?덈떎...";
     } catch (error) {
         console.error("Chat Error:", error);
-        return "잠시 연결이 불안정하여 목소리가 흩어졌습니다.";
+        return "?좎떆 ?곌껐??遺덉븞?뺥븯??紐⑹냼由ш? ?⑹뼱議뚯뒿?덈떎.";
     }
 }

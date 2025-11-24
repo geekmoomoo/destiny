@@ -10,6 +10,7 @@ export interface CardBackStyle {
 
 export interface RoundCardData extends CardBackStyle {
   text: string; 
+  summary?: string;
 }
 
 export interface LuckyPrescription {
@@ -58,6 +59,7 @@ export interface RoundContent {
   title: string;
   question: string;
   cardTexts: string[]; 
+  cardSummaries?: string[];
 }
 
 export interface HistoryItem {

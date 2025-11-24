@@ -54,35 +54,42 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({ roundInfo, onSelect }
       >
         {roundInfo.cards.map((card) => (
           (() => {
-            const shortFallback = `${card.text}에 담긴 기운을 더 깊이 바라보세요.`;
-            const displayText = card.text && card.text.length > 15 ? card.text : shortFallback;
+            const displayText = (card.text && card.text.trim().length > 0)
+              ? card.text.trim()
+              : "고요한 기운";
+            const summary = (card.summary && card.summary.trim().length > 0)
+              ? card.summary.trim()
+              : displayText;
             return (
           <motion.button
             key={card.id}
             variants={cardVariants}
             whileHover="hover"
-            whileTap={{ scale: 0.97 }}
-            onClick={onSelect}
-            className="group relative w-full aspect-[2/3] rounded-xl overflow-hidden border border-white/10 bg-[#0d0d16] shadow-[0_12px_35px_rgba(0,0,0,0.3)] focus:outline-none"
-          >
-            <div className={`absolute inset-0 ${card.bgClass}`} />
-            <div
-              className="absolute inset-0 opacity-30 mix-blend-screen"
-              style={{ backgroundImage: card.pattern }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/40 to-black/70" />
+                whileTap={{ scale: 0.97 }}
+                onClick={onSelect}
+                className="group relative w-full aspect-[2/3] rounded-xl overflow-hidden border border-white/10 bg-[#0d0d16] shadow-[0_12px_35px_rgba(0,0,0,0.3)] focus:outline-none"
+              >
+                <div className={`absolute inset-0 ${card.bgClass}`} />
+                <div
+                  className="absolute inset-0 opacity-30 mix-blend-screen"
+                  style={{ backgroundImage: card.pattern }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/40 to-black/70" />
 
-            <div className={`absolute inset-[8px] rounded-lg border ${card.borderClass} bg-black/30 backdrop-blur-sm flex items-center justify-center p-3 text-center`}>
+            <div className={`absolute inset-[8px] rounded-lg border ${card.borderClass} bg-black/30 backdrop-blur-sm flex flex-col items-center justify-center p-3 text-center gap-2`}>
               <p className="text-sm md:text-base text-white/90 leading-relaxed">
                 {displayText}
               </p>
+              <p className="text-[11px] md:text-xs text-white/60 leading-snug text-center break-words">
+                {summary}
+              </p>
             </div>
 
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
-              <div className="absolute -inset-1 rounded-xl border border-gold-400/40 blur-[2px]" />
-            </div>
-          </motion.button>
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
+                  <div className="absolute -inset-1 rounded-xl border border-gold-400/40 blur-[2px]" />
+                </div>
+              </motion.button>
             );
           })()
         ))}

@@ -153,17 +153,33 @@
 /* Swiper coverflow styles */
 .category-swiper {
   width: 100%;
-  padding: 8px 0 72px;
+  padding: 20px 0 92px;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .swiper-root {
   width: 100%;
   margin-top: -6px;
   position: relative;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 52px;
+  overflow: visible;
+}
+
+.swiper-slide {
+  overflow: visible;
+}
+
+.swiper-slide-shadow,
+.swiper-slide-shadow-left,
+.swiper-slide-shadow-right {
+  display: none !important;
 }
 
 .category-slide {
-  width: 220px;
+  width: 240px;
   max-width: 72vw;
   height: auto;
   display: flex;
@@ -174,58 +190,152 @@
 .category-slide-card {
   width: 100%;
   height: auto;
-  aspect-ratio: 10 / 13;
   border-radius: 12px;
   border: none;
+  position: relative;
+  cursor: pointer;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.category-slide-img {
+  width: 100%;
+  border-radius: 14px;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.55);
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  cursor: pointer;
+  box-shadow: none;
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  max-height: 72vh;
 }
 
-.category-slide-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(6,8,18,0.08), rgba(6,8,18,0.32));
-}
-
-.category-slide-content {
-  position: absolute;
-  bottom: 0;
+.category-slide-img img {
   width: 100%;
-  padding: 24px;
-  z-index: 1;
-  color: #f8fafc;
-  font-family: "Noto Serif KR", serif;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  border-radius: 14px;
 }
 
-.category-slide-content span {
+.category-slide-text {
+  width: 100%;
+  text-align: center;
+  color: #ffffff;
+  font-family: "Noto Serif KR", serif;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 14px 16px 10px;
+  background: rgba(3,5,12,0.4);
+  border-radius: 12px;
+  box-shadow: 0 14px 32px rgba(0,0,0,0.3);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  display: none; /* hide per-card text; use fixed overlay instead */
+}
+
+.category-slide-text span {
   display: inline-block;
   background: rgba(255,255,255,0.08);
-  padding: 8px 14px;
-  border-radius: 12px;
-  font-size: 0.8rem;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 800;
   letter-spacing: 0.08em;
-  margin-bottom: 10px;
 }
 
-.category-slide-content h3 {
+.category-slide-text h3 {
   margin: 0;
-  font-size: 1.05rem;
-  line-height: 1.4;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  font-size: clamp(1.08rem, 3.6vw, 1.24rem);
+  line-height: 1.55;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.45);
 }
 
 .swiper-pagination-bullet,
 .swiper-pagination-bullet-active {
-  background: #fff;
+  background: #9ca3af; /* soft gray */
 }
 
 .swiper-root .swiper-pagination {
-  bottom: 0 !important;
+  bottom: -6px !important;
   z-index: 10;
+}
+
+.swiper-slide-active .category-slide-text,
+.swiper-slide-next .category-slide-text,
+.swiper-slide-prev .category-slide-text {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.category-active-text {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  text-align: center;
+  color: #ffffff;
+  text-shadow: none;
+  opacity: 1;
+  transition: opacity 0.35s ease;
+}
+
+.category-active-title {
+  font-size: clamp(1.25rem, 4.2vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.category-active-sub {
+  font-size: clamp(1.02rem, 3.6vw, 1.18rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 768px) {
+  .category-swiper {
+    padding: 8px 0 80px;
+  }
+
+  .swiper-root {
+    width: 100%;
+    padding-bottom: 24px;
+  }
+
+  .category-slide {
+    width: 70vw;
+    max-width: 70vw;
+  }
+
+  .category-slide-img {
+    border-radius: 16px;
+    box-shadow: 0 14px 32px rgba(0,0,0,0.35);
+    max-height: 62vh;
+  }
+
+  .category-slide-card {
+    gap: 12px;
+  }
+
+  .category-slide-img img {
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .swiper-root .swiper-pagination {
+    bottom: 6px !important;
+  }
+
+  .category-active-text {
+    margin-top: 12px;
+  }
 }
