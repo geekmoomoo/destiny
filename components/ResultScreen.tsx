@@ -15,6 +15,10 @@ interface ChatMessage {
     id: string; role: 'user' | 'model'; text: string;
 }
 
+// Helper to get 2D context with correct typing
+const get2dCtx = (canvas: HTMLCanvasElement) =>
+  canvas.getContext('2d', { willReadFrequently: true } as CanvasRenderingContext2DSettings | undefined) as CanvasRenderingContext2D | null;
+
 const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const frontRef = useRef<HTMLDivElement>(null);
@@ -54,7 +58,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
     const canvas = canvasRef.current;
     const container = frontRef.current;
     if (!canvas || !container) return;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true } as any);
+    const ctx = get2dCtx(canvas);
     if (!ctx) return;
     const { width, height } = container.getBoundingClientRect();
     canvas.width = width; canvas.height = height;
@@ -70,7 +74,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
     const canvas = canvasRef.current;
     const container = frontRef.current;
     if (!canvas || !container) return;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true } as any);
+    const ctx = get2dCtx(canvas);
     if (!ctx) return;
     const { width, height } = container.getBoundingClientRect();
     canvas.width = width; canvas.height = height;
@@ -87,7 +91,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
   const handleScratch = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current; if (!canvas || isRevealed) return;
     const rect = canvas.getBoundingClientRect();
-    const ctx = canvas.getContext('2d', { willReadFrequently: true } as any);
+    const ctx = get2dCtx(canvas);
     if (ctx) {
       ctx.globalCompositeOperation = 'destination-out'; ctx.beginPath();
       ctx.arc(clientX - rect.left, clientY - rect.top, 40, 0, Math.PI * 2); ctx.fill();
@@ -97,7 +101,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
 
   const checkReveal = () => {
     const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext('2d'); if (!ctx) return;
+    const ctx = get2dCtx(canvas); if (!ctx) return;
     const w = canvas.width, h = canvas.height;
     const imgData = ctx.getImageData(w*0.3, h*0.3, w*0.4, h*0.4);
     let transparent = 0;
