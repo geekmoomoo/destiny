@@ -217,10 +217,13 @@ async function generateFortuneImage(fortuneText: string, category: FortuneCatego
         parts: [
           {
             text: `
-            Tarot card illustration: "${fortuneText}".
-            Theme: ${category.imageKeywords}. Visuals: ${randomSeeds}.
-            Style: Mystical high-fantasy art, glowing magic, 8k, tarot style, detailed borders.
-            No text. Entropy: ${timestamp}
+            Tarot card illustration, vertical 9:16, cinematic lighting.
+            Core scene: enchanted forest at night, deep blue and violet palette, glowing mushrooms on trees,
+            crescent moon above, sparkling starlight river swirling upward in an S-curve, lone silhouette of a girl on a path looking up.
+            Mood: mystical, hopeful, gentle, luminous. ${category.imageKeywords}. Visuals: ${randomSeeds}.
+            Style: high-fantasy illustration, soft painterly edges, crisp details, tarot-card framing with subtle inner glow border.
+            Absolutely no text, no captions, no runes, no labels, no handwriting on the card or borders.
+            Entropy: ${timestamp}
             `
           }
         ]
