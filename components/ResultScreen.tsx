@@ -20,7 +20,10 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
   const frontRef = useRef<HTMLDivElement>(null);
   const exportRef = useRef<HTMLDivElement>(null); 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fxCanvasRef = useRef<HTMLCanvasElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const cursorTimeoutRef = useRef<number | null>(null);
+  const fxCursorRef = useRef({ x: 0, y: 0, moving: false, scratching: false });
 
   const [isSaving, setIsSaving] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -32,6 +35,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
   const [inputText, setInputText] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [questionsLeft, setQuestionsLeft] = useState(3);
+  const [fxCursor, setFxCursor] = useState({ x: 0, y: 0, moving: false });
 
   if (!destiny) return null;
 
@@ -63,6 +67,11 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
       ctx.arc(clientX - rect.left, clientY - rect.top, 40, 0, Math.PI * 2); ctx.fill();
       checkReveal();
     }
+    setFxCursor({ x: clientX - rect.left, y: clientY - rect.top, moving: true });
+    if (cursorTimeoutRef.current) window.clearTimeout(cursorTimeoutRef.current);
+    cursorTimeoutRef.current = window.setTimeout(() => {
+      setFxCursor(c => ({ ...c, moving: false }));
+    }, 150);
   };
 
   const checkReveal = () => {
@@ -117,6 +126,109 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
+  // --- Scratch visual FX (stars & links) ---
+  useEffect(() => {
+    const canvas = fxCanvasRef.current;
+    const container = frontRef.current;
+    if (!canvas || !container) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const resize = () => {
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(container);
+
+    type Star = { x: number; y: number; r: number; a: number; };
+    type Dot = { x: number; y: number; a: number; decay: number; dx: number; dy: number; };
+
+    const stars: Star[] = Array.from({ length: 60 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.5 + 0.5,
+      a: 0.4 + Math.random() * 0.5,
+    }));
+    const dots: Dot[] = [];
+
+    const addDot = (x: number, y: number) => {
+      const last = dots[dots.length - 1];
+      if (last && Math.hypot(last.x - x, last.y - y) < 8) return;
+      dots.push({
+        x, y,
+        a: 0.9,
+        decay: 0.01 + Math.random() * 0.01,
+        dx: (Math.random() * 2 - 1) * 0.5,
+        dy: (Math.random() * 2 - 1) * 0.5,
+      });
+      if (dots.length > 140) dots.shift();
+    };
+
+    let frame: number;
+    const animate = () => {
+      frame = requestAnimationFrame(animate);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (const s of stars) {
+        s.y -= 0.1;
+        if (s.y < -5) s.y = canvas.height + 5;
+        ctx.fillStyle = `rgba(255,255,255,${s.a})`;
+        ctx.shadowBlur = s.r * 2;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const cursorState = fxCursorRef.current;
+      if (cursorState.scratching && cursorState.moving) addDot(cursorState.x, cursorState.y);
+      ctx.shadowBlur = 10;
+      ctx.lineWidth = 1;
+      let lastDot: Dot | null = null;
+      for (let i = dots.length - 1; i >= 0; i--) {
+        const d = dots[i];
+        d.a -= d.decay;
+        if (d.a <= 0) {
+          dots.splice(i, 1);
+          continue;
+        }
+        d.x += d.dx;
+        d.y += d.dy;
+
+        ctx.fillStyle = `rgba(255,255,255,${d.a})`;
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (lastDot) {
+          ctx.strokeStyle = `rgba(255,255,255,${d.a * 0.4})`;
+          ctx.beginPath();
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(lastDot.x, lastDot.y);
+          ctx.stroke();
+        }
+        lastDot = d;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (cursorTimeoutRef.current) window.clearTimeout(cursorTimeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    fxCursorRef.current = { ...fxCursor, scratching: isScratching };
+  }, [fxCursor, isScratching]);
+    animate();
+
+    return () => {
+      cancelAnimationFrame(frame);
+      ro.disconnect();
+    };
+  }, []);
+
   return (
     <div className="flex flex-col items-center w-full h-full overflow-y-auto custom-scrollbar relative pb-40 pt-6">
       
@@ -150,6 +262,10 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
                 />
             )}
         </AnimatePresence>
+        <canvas
+          ref={fxCanvasRef}
+          className="absolute inset-0 z-40 rounded-2xl pointer-events-none mix-blend-screen opacity-80"
+        />
 
         <motion.div 
             ref={cardRef} 
@@ -158,7 +274,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
             transition={{ duration: 0.8, ease: "easeInOut" }}
         >
           {/* --- FRONT: DISPLAY CARD (Same as Export) --- */}
-          <div ref={frontRef} className="absolute inset-0 backface-hidden rounded-2xl overflow-hidden shadow-2xl bg-[#0a0a12] border-4 border-[#1a1a2e]">
+          <div ref={frontRef} className="absolute inset-0 backface-hidden rounded-2xl overflow-hidden shadow-2xl bg-[#0a0a12] border-4 border-[#1a1a2e] destiny-glow">
              <div className="absolute inset-0 flex flex-col">
                 {/* Image Part (Top 70%) */}
                 <div className="relative h-[70%] w-full overflow-hidden border-b border-gold-500/20">

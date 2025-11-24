@@ -143,18 +143,45 @@ const CATEGORY_WORDS: Record<string, CategoryWords> = {
 };
 
 export const generateRoundTexts = (roundNum: number, count: number = 4, categoryId: string = 'general'): string[] => {
-  const categoryDict = CATEGORY_WORDS[categoryId] || GENERAL_WORDS;
-  const theme = categoryDict[roundNum] || GENERAL_WORDS[1];
-  const uniqueSet = new Set<string>();
+  // 풍부한 문장형 답변 생성: 카테고리별 이미지 + 라운드 느낌을 가미
+  const scenes: Record<string, string[]> = {
+    general: ['고요한 새벽 공기', '창문을 두드리는 빗소리', '한 줄기 달빛'],
+    love: ['포근한 손길의 온기', '서로를 비추는 눈빛', '가만히 번지는 미소'],
+    wealth: ['묵직한 금빛 흔들림', '차분히 쌓이는 재물의 숨결', '눈앞에 펼쳐진 너른 들판'],
+    social: ['따뜻한 대화의 울림', '서로 기대어 웃는 모습', '조용히 건네는 위로'],
+    growth: ['새싹이 트는 흙냄새', '차분한 서가의 책 향기', '깊은 숨 고르기의 순간'],
+    career: ['빛나는 설계도의 윤곽', '전진을 재촉하는 발자국', '둥근 달 아래 맺은 다짐']
+  };
+
+  const tonesByRound: Record<number, string[]> = {
+    1: ['지금 당신 곁에 머뭅니다', '조용히 다가옵니다', '당신의 하루를 감싸 안습니다'],
+    2: ['안내하듯 손짓합니다', '숨겨둔 의미를 드러냅니다', '다시 한 번 살피라 속삭입니다'],
+    3: ['앞길을 비추고 있습니다', '희망을 길러내고 있습니다', '온기를 더해줍니다'],
+    4: ['마지막 선택을 기다립니다', '운명의 문턱에서 숨을 고릅니다', '곧 결실을 이룹니다']
+  };
+
+  const endings = [
+    '지금 떠오르는 느낌을 조용히 풀어 써 보세요.',
+    '당신 마음속 질문에 이 기운을 대입해 보세요.',
+    '이 이미지가 떠오르게 하는 감정을 한 번 적어 보세요.',
+    '무의식에서 건네는 힌트를 가볍게 받아 적어 보세요.'
+  ];
+
+  const pickedScenes = scenes[categoryId] || scenes.general;
+  const pickedTones = tonesByRound[roundNum] || tonesByRound[1];
+
+  const results: string[] = [];
   let attempts = 0;
-  while (uniqueSet.size < count && attempts < 50) {
-    const mod = theme.modifiers[Math.floor(Math.random() * theme.modifiers.length)];
-    const sub = theme.subjects[Math.floor(Math.random() * theme.subjects.length)];
-    const pred = theme.predicates[Math.floor(Math.random() * theme.predicates.length)];
-    uniqueSet.add(`${mod}\n${sub} ${pred}`);
+  while (results.length < count && attempts < 50) {
     attempts++;
+    const scene = pickedScenes[Math.floor(Math.random() * pickedScenes.length)];
+    const tone = pickedTones[Math.floor(Math.random() * pickedTones.length)];
+    const end = endings[Math.floor(Math.random() * endings.length)];
+    const sentence = `${scene}에 담긴 기운이 ${tone}. ${end}`;
+    if (!results.includes(sentence)) {
+      results.push(sentence);
+    }
   }
-  const results = Array.from(uniqueSet);
   while (results.length < count) results.push(results[0]);
   return results;
 };

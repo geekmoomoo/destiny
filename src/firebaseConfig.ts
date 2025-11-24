@@ -20,13 +20,13 @@ const getEnv = (key: string, fallback: string) => {
 
 // Use environment variables with explicit fallbacks
 const firebaseConfig = {
-  apiKey: getEnv("VITE_FIREBASE_API_KEY", "AIzaSyBoIURnTep1kFzzH94R0i3Zpoq48le0pI0"),
-  authDomain: getEnv("VITE_FIREBASE_AUTH_DOMAIN", "destiny-crossroads.firebaseapp.com"),
-  projectId: getEnv("VITE_FIREBASE_PROJECT_ID", "destiny-crossroads"),
-  storageBucket: getEnv("VITE_FIREBASE_STORAGE_BUCKET", "destiny-crossroads.firebasestorage.app"),
-  messagingSenderId: getEnv("VITE_FIREBASE_MESSAGING_SENDER_ID", "143051940824"),
-  appId: getEnv("VITE_FIREBASE_APP_ID", "1:143051940824:web:696e9fe3890cb1db04c8ad"),
-  measurementId: getEnv("VITE_FIREBASE_MEASUREMENT_ID", "G-TE2Q2E20NE")
+  apiKey: getEnv("VITE_FIREBASE_API_KEY", ""),
+  authDomain: getEnv("VITE_FIREBASE_AUTH_DOMAIN", ""),
+  projectId: getEnv("VITE_FIREBASE_PROJECT_ID", ""),
+  storageBucket: getEnv("VITE_FIREBASE_STORAGE_BUCKET", ""),
+  messagingSenderId: getEnv("VITE_FIREBASE_MESSAGING_SENDER_ID", ""),
+  appId: getEnv("VITE_FIREBASE_APP_ID", ""),
+  measurementId: getEnv("VITE_FIREBASE_MEASUREMENT_ID", "")
 };
 
 // Initialize Firebase
@@ -34,6 +34,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
-const analytics = getAnalytics(app);
+const analytics = typeof window !== 'undefined' && firebaseConfig.measurementId ? getAnalytics(app) : null;
 
 export { auth, db, provider };

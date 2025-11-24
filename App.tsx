@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Volume2, VolumeX, History, Sparkles, X, LogIn, LogOut, User as UserIcon, Loader2, CheckCircle, AlertCircle, ExternalLink, Copy, BrainCircuit, Fingerprint, Zap } from 'lucide-react'; 
 import LandingScreen from './components/LandingScreen';
@@ -20,10 +20,44 @@ const Starfield = () => {
     <div className="fixed inset-0 pointer-events-none z-0 bg-[#050508]">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,#121220_0%,#000000_100%)]" />
       <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
+      <ShootingStars />
       
       {/* Slow moving nebula */}
       <div className="absolute top-[-20%] left-[-10%] w-[80vw] h-[80vw] bg-purple-900/10 rounded-full blur-[150px] animate-float-slow" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[80vw] h-[80vw] bg-blue-900/10 rounded-full blur-[150px] animate-[float_10s_ease-in-out_infinite_reverse]" />
+    </div>
+  );
+};
+
+// Shooting star layer inspired by the requested aesthetic
+const ShootingStars = () => {
+  const stars = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, idx) => ({
+        id: idx,
+        top: `${Math.random() * 120 - 10}%`,
+        left: `${Math.random() * 80 - 20}%`,
+        delay: `${2 + Math.random() * 10}s`,
+        duration: `${4.5 + Math.random() * 2.5}s`,
+      })),
+    []
+  );
+
+  return (
+    <div className="shooting-stars">
+      {stars.map((star) => (
+        <span
+          key={star.id}
+          className="shooting-star"
+          style={{
+            top: star.top,
+            left: star.left,
+            // CSS custom props for animation timing
+            ['--delay' as any]: star.delay,
+            ['--duration' as any]: star.duration,
+          }}
+        />
+      ))}
     </div>
   );
 };

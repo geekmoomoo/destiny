@@ -1,8 +1,12 @@
 import React from 'react';
 import { motion, Variants } from 'framer-motion';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { EffectCoverflow, Pagination, Keyboard, Mousewheel } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/effect-coverflow';
+import 'swiper/css/pagination';
 import { FortuneCategory } from '../types';
 import { FORTUNE_CATEGORIES } from '../data/fortuneData';
-import { Sparkles, ArrowRight } from 'lucide-react';
 
 interface CategorySelectionScreenProps {
   onSelect: (category: FortuneCategory) => void;
@@ -21,13 +25,29 @@ const cardVariants: Variants = {
   visible: { 
     opacity: 1, scale: 1, y: 0,
     transition: { duration: 0.8, ease: "easeOut" }
-  },
-  hover: { 
-    scale: 1.03,
-    y: -10,
-    transition: { duration: 0.4, ease: "easeOut" }
   }
 };
+
+const CARD_GRADIENTS: Record<string, { start: string; end: string }> = {
+  general: { start: '#4f46e5', end: '#06b6d4' },
+  love: { start: '#ec4899', end: '#fb7185' },
+  wealth: { start: '#f59e0b', end: '#f97316' },
+  social: { start: '#22d3ee', end: '#2563eb' },
+  growth: { start: '#22c55e', end: '#15803d' },
+  career: { start: '#60a5fa', end: '#2563eb' },
+};
+
+const TAROT_DECK = [
+  '/cards/the_fool_crop.jpg',
+  '/cards/the_magician_crop.jpg',
+  '/cards/the_high_priestess_crop.jpg',
+  '/cards/the_empress_crop.jpg',
+  '/cards/the_emperor_crop.jpg',
+  '/cards/the_hierophant_crop.jpg',
+  '/cards/the_hermit_crop.jpg',
+  '/cards/the_tower_crop.jpg',
+  '/cards/temperance_crop.jpg'
+];
 
 const CategorySelectionScreen: React.FC<CategorySelectionScreenProps> = ({ onSelect }) => {
   return (
@@ -44,65 +64,48 @@ const CategorySelectionScreen: React.FC<CategorySelectionScreenProps> = ({ onSel
         <p className="text-[10px] text-white/40 tracking-[0.4em] uppercase">Select Your Domain</p>
       </motion.div>
 
-      {/* Grid Layout */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-8 w-full max-w-5xl pb-20"
-      >
-        {FORTUNE_CATEGORIES.map((cat) => (
-          <motion.div
-            key={cat.id}
-            variants={cardVariants}
-            whileHover="hover"
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onSelect(cat)}
-            className="group cursor-pointer relative w-full aspect-[3/5] perspective-1000"
-          >
-            {/* Card Container (Tarot Back Style) */}
-            <div className="absolute inset-0 rounded-xl border-2 border-[#2a2a3d] bg-[#151520] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] group-hover:border-gold-500/40 group-hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] transition-all duration-500">
-                
-                {/* Pattern Texture */}
-                <div className="absolute inset-2 border border-white/5 rounded-lg opacity-50">
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')] opacity-40" />
-                    <div className={`absolute inset-0 bg-gradient-to-b ${cat.gradientClass} opacity-20 mix-blend-overlay`} />
-                </div>
-
-                {/* Inner Frame */}
-                <div className="absolute inset-4 border border-gold-500/20 rounded flex flex-col items-center justify-between p-4 z-10">
-                    
-                    {/* Top Decoration */}
-                    <div className="w-full flex justify-center">
-                        <div className="w-1 h-8 bg-gradient-to-b from-gold-500/0 via-gold-500/30 to-gold-500/0" />
-                    </div>
-
-                    {/* Center Symbol */}
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="relative w-16 h-16 flex items-center justify-center">
-                            <div className="absolute inset-0 border border-gold-500/10 rounded-full animate-spin-slow" />
-                            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-gold-500/50 transition-colors duration-500">
-                                <Sparkles className="w-6 h-6 text-gold-200/70 group-hover:text-gold-100" />
-                            </div>
-                        </div>
-                        <h3 className="text-lg md:text-xl font-serif font-bold text-gold-100 tracking-widest text-center group-hover:text-white transition-colors">
-                            {cat.name}
-                        </h3>
-                    </div>
-
-                    {/* Bottom Description */}
-                    <div className="text-center">
-                        <p className="text-[10px] text-white/40 line-clamp-2 font-light tracking-wide group-hover:text-white/60 transition-colors">
-                            {cat.description}
-                        </p>
-                        <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform translate-y-2 group-hover:translate-y-0">
-                            <ArrowRight className="w-4 h-4 text-gold-400 mx-auto" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-          </motion.div>
-        ))}
+      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="category-swiper">
+        <Swiper
+          effect="coverflow"
+          grabCursor
+          centeredSlides
+          slidesPerView="auto"
+          coverflowEffect={{
+            rotate: 0,
+            stretch: 0,
+            depth: 260,
+            modifier: 2.4,
+            slideShadows: true
+          }}
+          keyboard={{ enabled: true }}
+          mousewheel={{ thresholdDelta: 10 }}
+          spaceBetween={60}
+          loop
+          pagination={{ clickable: true }}
+          modules={[EffectCoverflow, Pagination, Keyboard, Mousewheel]}
+          className="swiper-root"
+        >
+          {FORTUNE_CATEGORIES.map((cat) => {
+            const grad = CARD_GRADIENTS[cat.id] || { start: '#0ea5e9', end: '#6366f1' };
+            const randomImage = TAROT_DECK[Math.floor(Math.random() * TAROT_DECK.length)];
+            return (
+              <SwiperSlide key={cat.id} className="category-slide">
+                <button
+                  onClick={() => onSelect(cat)}
+                  className="category-slide-card"
+                  style={{
+                    backgroundImage: `linear-gradient(to top, rgba(6,8,18,0.14), rgba(12,14,20,0.4)), url(${randomImage || `linear-gradient(135deg, ${grad.start}, ${grad.end})`})`
+                  }}
+                >
+                  <div className="category-slide-content">
+                    <span>{cat.name}</span>
+                    <h3>{cat.description}</h3>
+                  </div>
+                </button>
+              </SwiperSlide>
+            );
+          })}
+        </Swiper>
       </motion.div>
     </div>
   );

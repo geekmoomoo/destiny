@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight, Star } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { User } from 'firebase/auth';
 
 interface LandingScreenProps {
@@ -9,6 +9,35 @@ interface LandingScreenProps {
   onLogin: () => void;
   onLogout: () => void;
 }
+
+// Simple custom sigil to replace the plain star icon.
+const MysticSigil = () => (
+  <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="sigilGlow" cx="50%" cy="50%" r="60%">
+        <stop offset="0%" stopColor="#FDE68A" stopOpacity="0.9" />
+        <stop offset="45%" stopColor="#C084FC" stopOpacity="0.6" />
+        <stop offset="100%" stopColor="#0B0B16" stopOpacity="0" />
+      </radialGradient>
+      <linearGradient id="sigilStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#FDE68A" />
+        <stop offset="100%" stopColor="#A78BFA" />
+      </linearGradient>
+    </defs>
+    <circle cx="48" cy="48" r="36" fill="url(#sigilGlow)" />
+    <path
+      d="M48 14 L56 38 L82 38 L60 52 L68 78 L48 62 L28 78 L36 52 L14 38 L40 38 Z"
+      fill="none"
+      stroke="url(#sigilStroke)"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle cx="48" cy="48" r="6" fill="#FDE68A" />
+    <circle cx="48" cy="48" r="16" stroke="url(#sigilStroke)" strokeWidth="1.5" strokeDasharray="4 4" />
+    <circle cx="48" cy="48" r="24" stroke="url(#sigilStroke)" strokeWidth="1" strokeDasharray="2 6" opacity="0.6" />
+  </svg>
+);
 
 const LandingScreen: React.FC<LandingScreenProps> = ({ onStart, user, onLogin, onLogout }) => {
   return (
@@ -21,9 +50,6 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onStart, user, onLogin, o
          {/* Outer Ring */}
          <div className="absolute w-32 h-32 border border-gold-500/20 rounded-full animate-[spin_10s_linear_infinite]" />
          <div className="absolute w-28 h-28 border border-dashed border-gold-500/30 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
-         
-         {/* Center Star */}
-         <Star className="w-12 h-12 text-gold-100 fill-gold-100/20 animate-pulse drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]" />
          
          {/* Orbiting Particles */}
          <div className="absolute top-0 left-1/2 w-1 h-1 bg-gold-100 rounded-full shadow-[0_0_5px_white] animate-ping" />
