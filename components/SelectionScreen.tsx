@@ -29,6 +29,7 @@ const cardVariants: Variants = {
 
 const SelectionScreen: React.FC<SelectionScreenProps> = ({ roundInfo, onSelect }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const totalRounds = 4;
 
   // 라운드가 바뀔 때 선택 상태 초기화
   useEffect(() => {
@@ -68,13 +69,29 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({ roundInfo, onSelect }
         <p className="text-sm text-white/50 max-w-3xl px-4 mx-auto leading-relaxed">
           {roundInfo.description}
         </p>
+        <div className="flex items-center justify-center gap-3 pt-2">
+          {Array.from({ length: totalRounds }).map((_, idx) => {
+            const isActive = roundInfo.roundNumber === idx + 1;
+            return (
+              <span
+                key={idx}
+                className="h-2.5 w-2.5 rounded-full transition-all duration-300"
+                style={{
+                  background: isActive ? '#fbbf24' : 'rgba(255,255,255,0.16)',
+                  boxShadow: isActive ? '0 0 12px rgba(251,191,36,0.7)' : 'none',
+                  transform: isActive ? 'scale(1.2)' : 'scale(1)'
+                }}
+              />
+            );
+          })}
+        </div>
       </motion.div>
 
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 w-full max-w-6xl px-1 md:px-2"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 w-full max-w-6xl px-1 md:px-2"
       >
         <AnimatePresence mode="wait">
           {roundInfo.cards.map((card, idx) => {

@@ -183,10 +183,16 @@
   display: none !important;
 }
 
+:root {
+  --category-card-width: clamp(280px, 70vw, 416px);
+  --category-card-ratio: 1.5577; /* 648 / 416 */
+}
+
 .category-slide {
-  width: 92vw;      /* slight reveal of side cards */
-  max-width: 420px;
-  height: auto;
+  width: var(--category-card-width);
+  height: calc(var(--category-card-width) * var(--category-card-ratio));
+  max-width: 416px;
+  max-height: 648px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -194,7 +200,7 @@
 
 .category-slide-card {
   width: 100%;
-  height: auto;
+  height: 100%;
   border-radius: 22px !important; /* round outer frame */
   overflow: hidden;    /* enforce rounding */
   border: none;
@@ -209,6 +215,7 @@
 
 .category-slide-img {
   width: 100%;
+  height: 100%;
   border-radius: 22px !important; /* round card frame */
   overflow: hidden; /* ensure rounding is visible */
   position: relative;
@@ -216,13 +223,11 @@
   background: transparent;
   display: flex;
   justify-content: center;
-  max-height: none;
 }
 
 .category-slide-img img {
   width: 100%;
-  height: auto;
-  max-height: min(58vh, 480px); /* smaller to fit short viewports */
+  height: 100%;
   display: block;
   object-fit: contain;
   border-radius: 22px !important;
@@ -323,14 +328,16 @@
   }
 
   .category-slide {
-    width: 94vw;  /* show neighbor cards */
-    max-width: 420px;
+    width: clamp(260px, 78vw, 416px);  /* show neighbor cards */
+    height: calc(clamp(260px, 78vw, 416px) * var(--category-card-ratio));
+    max-width: 416px;
+    max-height: 648px;
   }
 
   .category-slide-img {
     border-radius: 16px;
     box-shadow: 0 14px 32px rgba(0,0,0,0.35);
-    max-height: none;
+    height: 100%;
   }
 
   .category-slide-card {
@@ -338,8 +345,7 @@
   }
 
   .category-slide-img img {
-    max-height: min(52vh, 420px); /* more compression for small phones */
-    height: auto;
+    height: 100%;
     object-fit: contain;
     border-radius: 22px !important;
     clip-path: inset(0 round 22px);

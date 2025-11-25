@@ -72,9 +72,10 @@ const VISUAL_SEEDS = [
   "Warm Sunset hues", "Cold Moonlight", "Neon bioluminescence", "Sepia vintage tone", "Prismatic refraction",
   "Foggy and mysterious", "Sparkling and ethereal", "Stormy and intense", "Calm and serene", "Dusty and ancient",
   "Underwater distortion", "Cosmic stardust", "Wind-blown motion",
-  "Floating crystals", "Blooming ancient flowers", "Twisted roots", "Geometric constellations", "Falling feathers",
-  "Rising smoke", "Shattered glass", "Flowing water ribbons", "Burning embers", "Golden chains",
-  "Dreamlike surrealism", "Intricate stained glass", "Watercolor bleed", "Oil painting texture", "Cinematic lighting"
+  "Floating crystals", "Blooming ancient flowers", "Twisted roots", "Falling feathers",
+  "Shattered glass", "Burning embers", "Golden chains",
+  "Dreamlike surrealism", "Intricate stained glass", "Watercolor bleed", "Oil painting texture", "Cinematic lighting",
+  "Single towering statue", "Lone guardian figure", "Ancient obelisk", "Celestial gateway", "Radiant monolith"
 ];
 
 function getRandomVisualSeeds(count: number = 3): string {
@@ -264,7 +265,7 @@ async function generateFortuneImage(fortuneText: string, category: FortuneCatego
             Style: high-fantasy illustration, soft painterly edges, crisp details, varied composition per request.
             Card edges: seamless bleed to black background, no bright/white frame, no glow border.
             Background outside card: pure black; avoid white, gray, or light margins.
-            Absolutely no text, no captions, no runes, no labels, no handwriting on the card or borders.
+            Negative cues: no text, typography, captions, runes, labels, handwriting, UI overlays, or carved words anywhere in the image; blank all signs and scrolls.
             Entropy: ${timestamp}
             `
           }

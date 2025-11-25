@@ -134,6 +134,7 @@ const App: React.FC = () => {
   const [currentRoundInfo, setCurrentRoundInfo] = useState<RoundInfo | null>(null);
   const [aiSessionData, setAiSessionData] = useState<RoundContent[] | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [avatarError, setAvatarError] = useState(false);
 
   const bgmRef = useRef<HTMLAudioElement | null>(null);
   const sfxSelectRef = useRef<HTMLAudioElement | null>(null);
@@ -241,6 +242,11 @@ const App: React.FC = () => {
     setCurrentStep('landing'); setCurrentRound(1); setGeneratedDestiny(null);
     setCurrentRoundInfo(null); setSelectedCategory(null); setSessionThemes([]); setAiSessionData(null); setSaveStatus('idle');
   };
+
+  useEffect(() => {
+    // reset avatar error when user changes
+    setAvatarError(false);
+  }, [user?.uid, user?.photoURL]);
 
   useEffect(() => {
     if (currentStep === 'intro' && selectedCategory) {
@@ -428,7 +434,16 @@ const App: React.FC = () => {
                     {user ? (
                         <button onClick={logout} className="flex flex-col items-center gap-1 text-white/50 hover:text-red-400 transition-colors">
                             <div className="w-5 h-5 rounded-full overflow-hidden border border-white/30">
-                                {user.photoURL ? <img src={user.photoURL} alt="User" className="w-full h-full object-cover" /> : <UserIcon className="w-full h-full p-1" />}
+                                {user.photoURL && !avatarError ? (
+                                  <img
+                                    src={user.photoURL}
+                                    alt="User"
+                                    className="w-full h-full object-cover"
+                                    onError={() => setAvatarError(true)}
+                                  />
+                                ) : (
+                                  <UserIcon className="w-full h-full p-1 text-white/70" />
+                                )}
                             </div>
                             <span className="text-[8px] uppercase tracking-wider">Logout</span>
                         </button>

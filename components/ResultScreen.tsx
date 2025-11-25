@@ -76,13 +76,13 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
     ctx.resetTransform();
     ctx.scale(dpr, dpr);
     
-    // Cover (slightly brighter for visible scratch contrast)
+    // Cover (opaque enough to hide card until scratched)
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = 'rgba(22, 24, 38, 0.9)'; // keep cover visible until more is scratched
+    ctx.fillStyle = 'rgba(10, 12, 18, 0.9)';
     ctx.fillRect(0, 0, w, h);
     
     // Mystic Pattern (brighter specks)
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.26)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
     for(let i=0; i<140; i++) { ctx.beginPath(); ctx.arc(Math.random() * w, Math.random() * h, Math.random() * 2.2, 0, Math.PI * 2); ctx.fill(); }
   };
 
@@ -131,19 +131,31 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
 
   // --- SAVE FUNCTION (The Artifact) ---
   const handleDownload = async () => {
-    if (!exportRef.current) return;
+    const target = exportRef.current || frontRef.current;
+    if (!target) return;
     setIsSaving(true);
-    exportRef.current.style.display = 'block'; // Show hidden element
+    const useExport = target === exportRef.current;
+    const wasHidden = useExport && exportRef.current && exportRef.current.style.display === 'none';
+    if (useExport && wasHidden && exportRef.current) exportRef.current.style.display = 'block'; // Show hidden element if using export
     
     try {
-        const canvas = await html2canvas(exportRef.current, { 
-            backgroundColor: null, scale: 2, useCORS: true, logging: false 
+        const canvas = await html2canvas(target, { 
+            backgroundColor: '#000000',
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            width: target.offsetWidth,
+            height: target.offsetHeight,
+            windowWidth: target.offsetWidth,
+            windowHeight: target.offsetHeight,
+            scrollX: 0,
+            scrollY: 0
         });
         const link = document.createElement('a'); link.download = `Destiny_Card.png`;
         link.href = canvas.toDataURL('image/png'); link.click();
     } catch(e) { alert('저장 실패'); }
     
-    exportRef.current.style.display = 'none'; // Hide again
+    if (useExport && wasHidden && exportRef.current) exportRef.current.style.display = 'none'; // Hide again
     setIsSaving(false);
   };
 
@@ -193,22 +205,24 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
       <div
         className="relative perspective-1000 cursor-pointer z-20 mb-8"
         style={{
-          width: 'min(96vw, 360px)', // ~10% wider
-          maxWidth: '360px',
-          minWidth: '330px',
+          width: 'clamp(320px, 42vw, 440px)',
+          maxWidth: '440px',
+          minWidth: '300px',
           aspectRatio: '9 / 16',
-          height: 'calc(min(96vw, 360px) * 16 / 9)',
-          maxHeight: '720px',
-          minHeight: '600px',
+          height: 'calc(clamp(320px, 42vw, 440px) * 16 / 9)',
+          maxHeight: '760px',
+          minHeight: '540px',
           backgroundColor: '#000000',
         }}
         onClick={() => isRevealed && setIsFlipped(!isFlipped)}
       >
-        
+          
         <AnimatePresence>
             {!isRevealed && (
                 <motion.canvas ref={canvasRef} className="absolute inset-0 z-50 rounded-2xl shadow-2xl cursor-crosshair"
-                    initial={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.05, filter: 'blur(10px)', transition: { duration: 1.5 } }}
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: isRevealed ? 0 : 1, scale: isRevealed ? 1.04 : 1, filter: isRevealed ? 'blur(10px)' : 'none' }}
+                    exit={{ opacity: 0, scale: 1.05, filter: 'blur(14px)', transition: { duration: 1.8 } }}
                     onPointerDown={(e) => {
                         e.preventDefault();
                         setIsScratching(true);
@@ -226,12 +240,18 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
                     }}
                     onPointerCancel={() => setIsScratching(false)}
                     onPointerLeave={() => setIsScratching(false)}
-                    style={{ display: isRevealed ? 'none' : 'block', pointerEvents: isRevealed ? 'none' : 'auto', touchAction: 'none' }}
+                    style={{ pointerEvents: isRevealed ? 'none' : 'auto', touchAction: 'none' }}
                 />
             )}
         </AnimatePresence>
         {!isRevealed && (
-          <div className="absolute inset-0 z-40 rounded-2xl bg-[#0a0a12] opacity-90 pointer-events-none" />
+          <motion.div
+            className="absolute inset-0 z-40 rounded-2xl bg-[#0a0a12]"
+            initial={{ opacity: 0.9 }}
+            animate={{ opacity: isRevealed ? 0 : 0.9 }}
+            transition={{ duration: 1.2 }}
+            style={{ pointerEvents: 'none' }}
+          />
         )}
         <motion.div 
             ref={cardRef} 
@@ -312,38 +332,40 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
       {/* --- HIDDEN EXPORT CARD (The Artifact) --- */}
       <div 
         ref={exportRef} 
-        style={{ display: 'none', width: '900px', height: '1600px' }} 
-        className="bg-[#0a0a12]"
+        style={{ display: 'none', position: 'fixed', top: '-20000px', left: '-20000px', width: '360px', height: '640px', backgroundColor: '#000000', zIndex: -10 }} 
+        className="bg-[#000000]"
       >
-         <div className="w-full h-full relative flex flex-col border-[24px] border-[#151520]">
-            {/* Image Area */}
-            <div className="relative w-full h-[72%] overflow-hidden border-b-4 border-[#2a2a3d]">
-                <img src={destiny.imageBase64} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a12] via-transparent to-transparent opacity-15" />
-            </div>
+        <div className="w-full h-full relative flex flex-col rounded-2xl overflow-hidden bg-black border-4 border-[#1a1a2e]">
+          {/* Image Area (match on-screen 78%) */}
+          <div className="relative w-full" style={{ height: '78%', minHeight: '78%', maxHeight: '78%', backgroundColor: '#000000' }}>
+            <img src={destiny.imageBase64} className="w-full h-full object-cover block" style={{ filter: 'brightness(1.15)' }} />
+            <div className="absolute inset-2 rounded-xl border border-gold-500/15 pointer-events-none" />
+          </div>
 
-            {/* Text Area */}
-            <div className="flex-1 bg-[#0a0a12] flex flex-col items-center justify-center p-10 text-center relative">
-                <div className="absolute -top-10 w-20 h-20 bg-[#0a0a12] rounded-full border-4 border-[#2a2a3d] flex items-center justify-center">
-                    {/* Simple SVG Star icon for export compatibility */}
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="2">
-                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                    </svg>
-                </div>
-                
-                <p className="text-white font-serif text-2xl leading-relaxed tracking-wide break-keep px-4 mt-6">
-                    "{destiny.fortuneText}"
-                </p>
-                
-                <div className="mt-8 flex flex-col items-center gap-2 opacity-60">
-                    <div className="w-16 h-[1px] bg-[#d4af37]" />
-                    <span className="text-sm tracking-[0.4em] text-[#d4af37] uppercase font-sans">Destiny Generated</span>
-                </div>
+          {/* Text Area (same layout as on-screen) */}
+          <div className="flex-1 bg-black p-8 flex flex-col items-center justify-center text-center relative">
+            <div className="absolute -top-8">
+              <div className="w-12 h-12 bg-[#0a0a12] border border-gold-500/30 rounded-full flex items-center justify-center">
+                {/* Simple SVG Star icon for export compatibility */}
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="2">
+                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                </svg>
+              </div>
             </div>
+            
+            <p className="text-white font-serif text-lg leading-relaxed tracking-wide break-keep px-4 mt-3">
+              "{destiny.fortuneText}"
+            </p>
+            
+            <div className="mt-5 flex flex-col items-center gap-2 opacity-70">
+              <div className="w-10 h-[1px] bg-gold-500/60" />
+              <span className="text-[10px] tracking-[0.35em] text-gold-100 uppercase font-sans">Destiny Generated</span>
+            </div>
+          </div>
 
-            {/* Inner Gold Line */}
-            <div className="absolute inset-4 border border-[#d4af37] opacity-30 rounded-lg pointer-events-none" />
-         </div>
+          {/* Inner Gold Line */}
+          <div className="absolute inset-3 border border-[#d4af37] opacity-25 rounded-xl pointer-events-none" />
+        </div>
       </div>
 
       {/* --- ACTION BUTTONS --- */}
@@ -354,10 +376,10 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
         style={{ pointerEvents: isRevealed ? 'auto' : 'none' }}
       >
         <button onClick={handleOpenChat} className="glass-button flex-1 py-3 rounded-full flex items-center justify-center gap-2 text-purple-300 border-purple-500/30 hover:bg-purple-500/10">
-            <MessageCircle className="w-4 h-4" /> <span className="text-xs font-bold tracking-widest">CHAT</span>
+            <MessageCircle className="w-4 h-4" /> <span className="text-xs font-bold tracking-widest">Ai 상담</span>
         </button>
         <button onClick={handleDownload} disabled={isSaving} className="glass-button flex-1 py-3 rounded-full flex items-center justify-center gap-2 text-gold-200 border-gold-500/30 hover:bg-gold-500/10">
-            <Download className="w-4 h-4" /> <span className="text-xs font-bold tracking-widest">SAVE</span>
+            <Download className="w-4 h-4" /> <span className="text-xs font-bold tracking-widest">이미지 저장</span>
         </button>
         <div className="flex gap-2">
             <ControlButton icon={RefreshCw} onClick={onRetry} />

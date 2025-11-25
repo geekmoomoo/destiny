@@ -41,10 +41,10 @@ const MysticSigil = () => (
 
 const LandingScreen: React.FC<LandingScreenProps> = ({ onStart, user, onLogin, onLogout }) => {
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full relative overflow-hidden px-6 pb-20">
+    <div className="flex flex-col items-center justify-start h-full w-full relative overflow-hidden px-6 pt-12 pb-16 gap-6">
       
       {/* AI Logo Animation */}
-      <div className="mb-12 relative w-40 h-40 flex items-center justify-center">
+      <div className="mb-8 relative w-40 h-40 flex items-center justify-center">
          <div className="absolute inset-0 bg-gold-500/10 blur-3xl rounded-full animate-pulse-slow" />
          
          {/* Outer Ring */}
@@ -61,11 +61,11 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onStart, user, onLogin, o
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1.5, ease: "easeOut" }}
       >
-        <h1 className="text-5xl md:text-7xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-b from-white via-gold-100 to-gold-600/50 leading-tight tracking-tight font-serif drop-shadow-2xl">
+        <h1 className="text-5xl md:text-7xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-b from-white via-gold-100 to-gold-600/50 leading-tight tracking-tight font-serif drop-shadow-2xl">
           운명의<br/>갈림길
         </h1>
 
-        <p className="text-xs md:text-sm text-white/50 font-light mb-16 leading-7 tracking-wide">
+        <p className="text-xs md:text-sm text-white/50 font-light mb-10 leading-7 tracking-wide">
           별들의 속삭임이 당신의 길을 비춥니다.<br/>
           당신만의 이야기를 시작하세요.
         </p>
