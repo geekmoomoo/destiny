@@ -47,15 +47,12 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const TAROT_DECK = [
-  '/cards/the_fool_crop.jpg',
-  '/cards/the_magician_crop.jpg',
-  '/cards/the_high_priestess_crop.jpg',
-  '/cards/the_empress_crop.jpg',
-  '/cards/the_emperor_crop.jpg',
-  '/cards/the_hierophant_crop.jpg',
-  '/cards/the_hermit_crop.jpg',
-  '/cards/the_tower_crop.jpg',
-  '/cards/temperance_crop.jpg'
+  '/cards/personal_potential.png', // 나의 잠재력
+  '/cards/wealth_energy.png',      // 부의 기운
+  '/cards/relationships.png',      // 사람과 인연
+  '/cards/love_path.png',          // 사랑의 행방
+  '/cards/daily_flow.png',         // 오늘의 흐름
+  '/cards/career_path.png'         // 직업과 진로
 ];
 
 const CategorySelectionScreen: React.FC<CategorySelectionScreenProps> = ({ onSelect }) => {
@@ -86,7 +83,7 @@ const CategorySelectionScreen: React.FC<CategorySelectionScreenProps> = ({ onSel
   };
 
   return (
-    <div className="flex flex-col items-center w-full h-full px-4 pt-14 md:pt-16 pb-28 md:pb-36 overflow-y-auto custom-scrollbar relative z-20">
+    <div className="flex flex-col items-center w-full h-full px-0 sm:px-2 pt-14 md:pt-16 pb-28 md:pb-36 overflow-y-auto custom-scrollbar relative z-20">
       
       <motion.div
         initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2 }}

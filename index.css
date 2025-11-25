@@ -153,18 +153,23 @@
 /* Swiper coverflow styles */
 .category-swiper {
   width: 100%;
-  padding: 20px 0 92px;
+  min-height: 100dvh;
+  padding: 10px 0 72px; /* tighter vertical padding */
   overflow-x: hidden;
   overflow-y: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .swiper-root {
   width: 100%;
+  max-width: none;
   margin-top: -6px;
   position: relative;
   display: flex;
   justify-content: center;
-  padding-bottom: 52px;
+  padding: 0 0 56px; /* more bottom gap to keep dots/text off the card */
   overflow: visible;
 }
 
@@ -179,8 +184,8 @@
 }
 
 .category-slide {
-  width: 240px;
-  max-width: 72vw;
+  width: 92vw;      /* slight reveal of side cards */
+  max-width: 420px;
   height: auto;
   display: flex;
   align-items: center;
@@ -190,11 +195,12 @@
 .category-slide-card {
   width: 100%;
   height: auto;
-  border-radius: 12px;
+  border-radius: 22px !important; /* round outer frame */
+  overflow: hidden;    /* enforce rounding */
   border: none;
   position: relative;
   cursor: pointer;
-  background: transparent;
+  background: #050508; /* contrast to reveal rounded corners */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -203,22 +209,24 @@
 
 .category-slide-img {
   width: 100%;
-  border-radius: 14px;
-  overflow: hidden;
+  border-radius: 22px !important; /* round card frame */
+  overflow: hidden; /* ensure rounding is visible */
   position: relative;
   box-shadow: none;
   background: transparent;
   display: flex;
   justify-content: center;
-  max-height: 72vh;
+  max-height: none;
 }
 
 .category-slide-img img {
   width: 100%;
   height: auto;
+  max-height: min(58vh, 480px); /* smaller to fit short viewports */
   display: block;
   object-fit: contain;
-  border-radius: 14px;
+  border-radius: 22px !important;
+  clip-path: inset(0 round 22px);
 }
 
 .category-slide-text {
@@ -265,7 +273,7 @@
 }
 
 .swiper-root .swiper-pagination {
-  bottom: -6px !important;
+  bottom: -8px !important; /* move dots below the card */
   z-index: 10;
 }
 
@@ -277,7 +285,7 @@
 }
 
 .category-active-text {
-  margin-top: 18px;
+  margin-top: 22px; /* push text slightly lower */
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -293,33 +301,36 @@
   font-size: clamp(1.25rem, 4.2vw, 1.4rem);
   font-weight: 800;
   letter-spacing: 0.06em;
+  text-shadow: none;
 }
 
 .category-active-sub {
   font-size: clamp(1.02rem, 3.6vw, 1.18rem);
   font-weight: 600;
   letter-spacing: 0.04em;
+  text-shadow: none;
 }
 
 @media (max-width: 768px) {
   .category-swiper {
-    padding: 8px 0 80px;
+    padding: 8px 0 64px; /* less bottom slack on phones */
   }
 
   .swiper-root {
     width: 100%;
-    padding-bottom: 24px;
+    max-width: 100%;
+    padding: 0 0 40px; /* more space for dots/text */
   }
 
   .category-slide {
-    width: 70vw;
-    max-width: 70vw;
+    width: 94vw;  /* show neighbor cards */
+    max-width: 420px;
   }
 
   .category-slide-img {
     border-radius: 16px;
     box-shadow: 0 14px 32px rgba(0,0,0,0.35);
-    max-height: 62vh;
+    max-height: none;
   }
 
   .category-slide-card {
@@ -327,15 +338,36 @@
   }
 
   .category-slide-img img {
-    height: 100%;
+    max-height: min(52vh, 420px); /* more compression for small phones */
+    height: auto;
     object-fit: contain;
+    border-radius: 22px !important;
+    clip-path: inset(0 round 22px);
   }
 
   .swiper-root .swiper-pagination {
-    bottom: 6px !important;
+    bottom: 0px !important; /* keep dots below card on phones */
   }
 
   .category-active-text {
-    margin-top: 12px;
+    margin-top: 14px; /* lower on phones */
+  }
+}
+
+/* Very short screens (e.g., iPhone SE landscape-ish height) */
+@media (max-height: 720px) {
+  .category-swiper {
+    padding: 6px 0 54px;
+  }
+  .category-slide-img img {
+    max-height: min(50vh, 400px);
+    border-radius: 22px !important;
+    clip-path: inset(0 round 22px);
+  }
+  .swiper-root {
+    padding: 0 0 18px;
+  }
+  .category-active-text {
+    margin-top: 12px; /* keep text visible on short screens */
   }
 }

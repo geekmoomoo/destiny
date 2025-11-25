@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion, Variants } from 'framer-motion';
+import React, { useMemo, useState, useEffect } from 'react';
+import { motion, Variants, AnimatePresence } from 'framer-motion';
 import { RoundInfo } from '../types';
 
 interface SelectionScreenProps {
@@ -23,10 +23,34 @@ const cardVariants: Variants = {
     y: 0,
     transition: { duration: 0.6, ease: 'easeOut' }
   },
-  hover: { scale: 1.03, y: -8, transition: { duration: 0.2 } }
+  hover: { scale: 1.03, y: -8, transition: { duration: 0.2 } },
+  exit: { opacity: 0, scale: 0.9, filter: 'blur(12px)', transition: { duration: 0.8, ease: 'easeInOut' } }
 };
 
 const SelectionScreen: React.FC<SelectionScreenProps> = ({ roundInfo, onSelect }) => {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // 라운드가 바뀔 때 선택 상태 초기화
+  useEffect(() => {
+    setSelectedId(null);
+  }, [roundInfo.roundNumber, roundInfo.cards.length]);
+
+  const bgPool = useMemo(() => [
+    '/cards/bg_01.png',
+    '/cards/bg_02.png',
+    '/cards/bg_03.png',
+    '/cards/bg_04.png',
+  ], []);
+
+  const cardBackgrounds = useMemo(() => {
+    const shuffled = [...bgPool].sort(() => Math.random() - 0.5);
+    const needed = roundInfo.cards.length;
+    if (needed <= shuffled.length) return shuffled.slice(0, needed);
+    const extended: string[] = [];
+    while (extended.length < needed) extended.push(...shuffled);
+    return extended.slice(0, needed);
+  }, [bgPool, roundInfo.cards.length, roundInfo.roundNumber]);
+
   return (
     <div className="flex flex-col items-center w-full h-full px-3 pt-6 pb-12 overflow-y-auto relative z-20">
       <motion.div
@@ -52,47 +76,60 @@ const SelectionScreen: React.FC<SelectionScreenProps> = ({ roundInfo, onSelect }
         animate="visible"
         className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 w-full max-w-6xl px-1 md:px-2"
       >
-        {roundInfo.cards.map((card) => (
-          (() => {
+        <AnimatePresence mode="wait">
+          {roundInfo.cards.map((card, idx) => {
             const displayText = (card.text && card.text.trim().length > 0)
               ? card.text.trim()
               : "고요한 기운";
             const summary = (card.summary && card.summary.trim().length > 0)
               ? card.summary.trim()
               : displayText;
+            const bgImage = cardBackgrounds[idx % cardBackgrounds.length];
+            const isSelected = selectedId === card.id;
+
             return (
-          <motion.button
-            key={card.id}
-            variants={cardVariants}
-            whileHover="hover"
-                whileTap={{ scale: 0.97 }}
-                onClick={onSelect}
+              <motion.button
+                key={card.id}
+                variants={cardVariants}
+                initial="hidden"
+                animate={
+                  selectedId
+                    ? isSelected
+                      ? { scale: 1.08, zIndex: 10, boxShadow: '0 24px 60px rgba(0,0,0,0.55)', opacity: 1 }
+                      : { opacity: 0, scale: 0.9, filter: 'blur(8px)' }
+                    : 'visible'
+                }
+                exit="exit"
+                whileHover={!selectedId ? 'hover' : undefined}
+                whileTap={!selectedId ? { scale: 0.97 } : undefined}
+                onClick={() => {
+                  if (selectedId) return;
+                  setSelectedId(card.id);
+                  setTimeout(onSelect, 2000); // 2s spotlight before transition
+                }}
                 className="group relative w-full aspect-[2/3] rounded-xl overflow-hidden border border-white/10 bg-[#0d0d16] shadow-[0_12px_35px_rgba(0,0,0,0.3)] focus:outline-none"
+                transition={{ duration: 0.6, ease: 'easeOut' }}
               >
-                <div className={`absolute inset-0 ${card.bgClass}`} />
                 <div
-                  className="absolute inset-0 opacity-30 mix-blend-screen"
-                  style={{ backgroundImage: card.pattern }}
+                  className="absolute inset-0"
+                  style={{ backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 1.0 }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/40 to-black/70" />
+                <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/55 to-black/70" />
 
-            <div className={`absolute inset-[8px] rounded-lg border ${card.borderClass} bg-black/30 backdrop-blur-sm flex flex-col items-center justify-center p-3 text-center gap-2`}>
-              <p className="text-sm md:text-base text-white/90 leading-relaxed">
-                {displayText}
-              </p>
-              <p className="text-[11px] md:text-xs text-white/60 leading-snug text-center break-words">
-                {summary}
-              </p>
-            </div>
-
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
-                  <div className="absolute -inset-1 rounded-xl border border-gold-400/40 blur-[2px]" />
+                <div className="absolute inset-[8px] flex flex-col items-center justify-center p-3 text-center gap-4">
+                  <p className="text-sm md:text-base text-white leading-relaxed">
+                    {displayText}
+                  </p>
+                  <p className="text-[11px] md:text-xs text-white leading-snug text-center break-words">
+                    {summary}
+                  </p>
                 </div>
+
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </motion.button>
             );
-          })()
-        ))}
+          })}
+        </AnimatePresence>
       </motion.div>
     </div>
   );

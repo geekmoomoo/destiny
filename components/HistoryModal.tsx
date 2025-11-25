@@ -177,7 +177,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ onClose, history, onClear, 
                         >
                             <div className="relative rounded-xl border border-white/10 p-4 flex flex-col h-[500px] bg-black/90 text-amber-50 overflow-y-auto custom-scrollbar">
                                 <h3 className="text-amber-200 font-serif text-base tracking-widest uppercase text-center mb-4 border-b border-amber-500/20 pb-2">심층 해석</h3>
-                                <p className="text-sm leading-relaxed font-serif font-light opacity-90 text-justify whitespace-pre-line mb-6">
+                                <p className="text-sm leading-relaxed font-serif font-medium text-[#f7f1e3] text-justify whitespace-pre-line mb-6">
                                     {selectedItem.longInterpretation || "상세 해석 정보가 저장되지 않았습니다."}
                                 </p>
                                 

@@ -242,6 +242,15 @@ async function generateFortuneImage(fortuneText: string, category: FortuneCatego
     const randomSeeds = getRandomVisualSeeds(2);
     const timestamp = Date.now(); 
 
+    const paletteHint = {
+      general: "mystical purples and silvers",
+      love: "romantic pinks and reds, warm glow",
+      wealth: "opulent gold and amber, sapphire accents",
+      social: "teal and cyan threads of light",
+      growth: "emerald greens with golden sunrays",
+      career: "deep blues and steel silver, architectural lines"
+    }[(category.id as string)] || "mystical jewel tones";
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
@@ -249,10 +258,12 @@ async function generateFortuneImage(fortuneText: string, category: FortuneCatego
           {
             text: `
             Tarot card illustration, vertical 9:16, cinematic lighting.
-            Core scene: enchanted forest at night, deep blue and violet palette, glowing mushrooms on trees,
-            crescent moon above, sparkling starlight river swirling upward in an S-curve, lone silhouette of a girl on a path looking up.
-            Mood: mystical, hopeful, gentle, luminous. ${category.imageKeywords}. Visuals: ${randomSeeds}.
-            Style: high-fantasy illustration, soft painterly edges, crisp details, tarot-card framing with subtle inner glow border.
+            Theme: ${category.name} (${category.description}).
+            Core mood: ${paletteHint}, ${category.imageKeywords}. Visuals: ${randomSeeds}.
+            Variation cues: weave in symbols that match "${fortuneText}" and ${category.focusQuestions?.slice(0,2).join(", ") || "the user's focus"}.
+            Style: high-fantasy illustration, soft painterly edges, crisp details, varied composition per request.
+            Card edges: seamless bleed to black background, no bright/white frame, no glow border.
+            Background outside card: pure black; avoid white, gray, or light margins.
             Absolutely no text, no captions, no runes, no labels, no handwriting on the card or borders.
             Entropy: ${timestamp}
             `
@@ -264,11 +275,13 @@ async function generateFortuneImage(fortuneText: string, category: FortuneCatego
       }
     });
 
+    const candidates = response?.candidates || [];
     let base64Image = null;
-    if (response.candidates && response.candidates.length > 0) {
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          base64Image = part.inlineData.data;
+    if (candidates.length > 0) {
+      const parts = candidates[0]?.content?.parts || [];
+      for (const part of parts) {
+        if ((part as any)?.inlineData?.data) {
+          base64Image = (part as any).inlineData.data;
           break;
         }
       }

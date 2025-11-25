@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Download, Sparkles, Share2, Palette, Hash, Compass, Key, EyeOff, MessageCircle, Send, X, Lock } from 'lucide-react';
+import { RefreshCw, Download, Sparkles, Share2, Palette, Hash, Compass, Key, MessageCircle, Send, X } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { GeneratedDestiny, FortuneCategory } from '../types';
 import { chatWithOracle } from '../utils/aiService';
@@ -52,49 +52,69 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
     setIsScratching(false);
   }, []);
 
-  // Ensure scratch cover is repainted when not revealed
-  useEffect(() => {
-    if (isRevealed) return;
+  // --- SCRATCH COVER PAINT + RESIZE AWARE ---
+  const paintCover = () => {
     const canvas = canvasRef.current;
-    const container = frontRef.current;
+    const container = frontRef.current || cardRef.current;
     if (!canvas || !container) return;
     const ctx = get2dCtx(canvas);
     if (!ctx) return;
-    const { width, height } = container.getBoundingClientRect();
-    canvas.width = width; canvas.height = height;
+    const rect = container.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    // Fallback: if measured height is too small, use aspect ratio of card container
+    const fallbackHeight = cardRef.current ? cardRef.current.getBoundingClientRect().width * (16 / 9) : 0;
+    const safeWidth = Math.max(1, Math.round(width));
+    const safeHeight = Math.max(1, Math.round(height > 20 ? height : fallbackHeight));
+    const dpr = window.devicePixelRatio || 1;
+    const w = safeWidth;
+    const h = safeHeight;
+    canvas.width = w * dpr; 
+    canvas.height = h * dpr;
+    canvas.style.width = `${w}px`; 
+    canvas.style.height = `${h}px`;
+    ctx.resetTransform();
+    ctx.scale(dpr, dpr);
+    
+    // Cover (slightly brighter for visible scratch contrast)
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = '#0a0a12';
-    ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    for(let i=0; i<80; i++) { ctx.beginPath(); ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 1.5, 0, Math.PI * 2); ctx.fill(); }
-  }, [isRevealed]);
+    ctx.fillStyle = 'rgba(22, 24, 38, 0.9)'; // keep cover visible until more is scratched
+    ctx.fillRect(0, 0, w, h);
+    
+    // Mystic Pattern (brighter specks)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.26)';
+    for(let i=0; i<140; i++) { ctx.beginPath(); ctx.arc(Math.random() * w, Math.random() * h, Math.random() * 2.2, 0, Math.PI * 2); ctx.fill(); }
+  };
 
-  // --- SCRATCH EFFECT ---
+  // Repaint on destiny change or when not revealed
+  useLayoutEffect(() => {
+    if (!isRevealed) {
+      // wait a frame for layout to settle
+      requestAnimationFrame(() => paintCover());
+    }
+  }, [destiny, isRevealed]);
+
+  // Resize observer to keep canvas drawing surface synced to container
   useEffect(() => {
-    const canvas = canvasRef.current;
     const container = frontRef.current;
-    if (!canvas || !container) return;
-    const ctx = get2dCtx(canvas);
-    if (!ctx) return;
-    const { width, height } = container.getBoundingClientRect();
-    canvas.width = width; canvas.height = height;
-    
-    // Dark Cover
-    ctx.fillStyle = '#0a0a12'; 
-    ctx.fillRect(0, 0, width, height);
-    
-    // Mystic Pattern
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    for(let i=0; i<100; i++) { ctx.beginPath(); ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 1.5, 0, Math.PI * 2); ctx.fill(); }
-  }, [destiny]);
+    if (!container) return;
+    const obs = new ResizeObserver(() => { if (!isRevealed) paintCover(); });
+    obs.observe(container);
+    return () => obs.disconnect();
+  }, [isRevealed]);
 
   const handleScratch = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current; if (!canvas || isRevealed) return;
     const rect = canvas.getBoundingClientRect();
     const ctx = get2dCtx(canvas);
     if (ctx) {
-      ctx.globalCompositeOperation = 'destination-out'; ctx.beginPath();
-      ctx.arc(clientX - rect.left, clientY - rect.top, 40, 0, Math.PI * 2); ctx.fill();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'rgba(0,0,0,1)';
+      ctx.beginPath();
+      ctx.arc(x, y, 42, 0, Math.PI * 2); // slightly smaller brush to require more scratching
+      ctx.fill();
       checkReveal();
     }
   };
@@ -106,7 +126,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
     const imgData = ctx.getImageData(w*0.3, h*0.3, w*0.4, h*0.4);
     let transparent = 0;
     for (let i = 0; i < imgData.data.length; i += 40) { if (imgData.data[i + 3] < 128) transparent++; }
-    if (transparent > (imgData.data.length / 40) * 0.4) setIsRevealed(true);
+    if (transparent > (imgData.data.length / 40) * 0.8) setIsRevealed(true); // require ~80% scratched to reveal
   };
 
   // --- SAVE FUNCTION (The Artifact) ---
@@ -170,19 +190,43 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
       </div>
 
       {/* --- 3D CARD CONTAINER (Interactive) --- */}
-      <div className="relative w-[85vw] max-w-[320px] aspect-[9/16] perspective-1000 cursor-pointer z-20 mb-8" onClick={() => isRevealed && setIsFlipped(!isFlipped)}>
+      <div
+        className="relative perspective-1000 cursor-pointer z-20 mb-8"
+        style={{
+          width: 'min(96vw, 360px)', // ~10% wider
+          maxWidth: '360px',
+          minWidth: '330px',
+          aspectRatio: '9 / 16',
+          height: 'calc(min(96vw, 360px) * 16 / 9)',
+          maxHeight: '720px',
+          minHeight: '600px',
+          backgroundColor: '#000000',
+        }}
+        onClick={() => isRevealed && setIsFlipped(!isFlipped)}
+      >
         
         <AnimatePresence>
             {!isRevealed && (
                 <motion.canvas ref={canvasRef} className="absolute inset-0 z-50 rounded-2xl shadow-2xl cursor-crosshair"
                     initial={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.05, filter: 'blur(10px)', transition: { duration: 1.5 } }}
-                    onMouseDown={() => setIsScratching(true)} onMouseUp={() => setIsScratching(false)}
-                    onMouseMove={(e) => isScratching && handleScratch(e.nativeEvent.offsetX, e.nativeEvent.offsetY)}
-                    onTouchMove={(e) => {
-                        const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
-                        handleScratch(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+                    onPointerDown={(e) => {
+                        e.preventDefault();
+                        setIsScratching(true);
+                        canvasRef.current?.setPointerCapture(e.pointerId);
+                        handleScratch(e.clientX, e.clientY);
                     }}
-                    style={{ display: isRevealed ? 'none' : 'block', pointerEvents: isRevealed ? 'none' : 'auto' }}
+                    onPointerMove={(e) => {
+                        if (!isScratching) return;
+                        e.preventDefault();
+                        handleScratch(e.clientX, e.clientY);
+                    }}
+                    onPointerUp={(e) => {
+                        setIsScratching(false);
+                        canvasRef.current?.releasePointerCapture(e.pointerId);
+                    }}
+                    onPointerCancel={() => setIsScratching(false)}
+                    onPointerLeave={() => setIsScratching(false)}
+                    style={{ display: isRevealed ? 'none' : 'block', pointerEvents: isRevealed ? 'none' : 'auto', touchAction: 'none' }}
                 />
             )}
         </AnimatePresence>
@@ -192,20 +236,32 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
         <motion.div 
             ref={cardRef} 
             className="relative w-full h-full preserve-3d"
+            style={{ transformStyle: 'preserve-3d' }}
             animate={{ rotateY: isFlipped ? 180 : 0 }} 
             transition={{ duration: 0.8, ease: "easeInOut" }}
         >
           {/* --- FRONT: DISPLAY CARD (Same as Export) --- */}
-          <div ref={frontRef} className="absolute inset-0 backface-hidden rounded-2xl overflow-hidden shadow-2xl bg-[#0a0a12] border-4 border-[#1a1a2e] destiny-glow">
+          <div
+            ref={frontRef}
+            className="absolute inset-0 backface-hidden rounded-2xl overflow-hidden shadow-2xl bg-black border-4 border-[#1a1a2e]"
+            style={{ height: '100%', backfaceVisibility: 'hidden', backgroundColor: '#000000' }}
+          >
              <div className="absolute inset-0 flex flex-col">
-                {/* Image Part (Top 70%) */}
-                <div className="relative h-[70%] w-full overflow-hidden border-b border-gold-500/20">
-                    <img src={destiny.imageBase64} alt="Destiny" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a12] via-transparent to-transparent opacity-50" />
+                {/* Image Part */}
+                <div
+                  className="relative w-full overflow-hidden border-b border-black"
+                  style={{ height: '78%', minHeight: '78%', maxHeight: '78%', backgroundColor: '#000000' }}
+                >
+                    <img
+                      src={destiny.imageBase64}
+                      alt="Destiny"
+                      className="w-full h-full object-cover block"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(1.15)' }}
+                    />
                 </div>
                 
                 {/* Text Part (Bottom 30%) */}
-                <div className="flex-1 bg-[#0a0a12] p-6 flex flex-col items-center justify-center text-center relative">
+                <div className="flex-1 bg-black p-6 flex flex-col items-center justify-center text-center relative">
                     <div className="absolute -top-6">
                         <div className="w-10 h-10 bg-[#0a0a12] border border-gold-500/30 rounded-full flex items-center justify-center">
                             <Sparkles className="w-5 h-5 text-gold-300" />
@@ -221,14 +277,17 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
                         <span className="text-[8px] tracking-[0.3em] text-gold-100 uppercase">Destiny Generated</span>
                     </div>
                 </div>
-             </div>
+              </div>
              
              {/* Inner Gold Border */}
              <div className="absolute inset-2 rounded-xl border border-gold-500/20 pointer-events-none" />
           </div>
 
           {/* --- BACK: DETAILS --- */}
-          <div className="absolute inset-0 backface-hidden rounded-2xl bg-[#0f0f1a] border border-white/10 shadow-2xl overflow-hidden" style={{ transform: 'rotateY(180deg)', display: isFlipped ? 'block' : 'none' }}>
+          <div
+            className="absolute inset-0 backface-hidden rounded-2xl bg-[#0f0f1a] border border-white/10 shadow-2xl overflow-hidden"
+            style={{ transform: 'rotateY(180deg)', backfaceVisibility: 'hidden' }}
+          >
              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20" />
              <div className="relative h-full flex flex-col p-6 overflow-y-auto custom-scrollbar">
                 <div className="text-center mb-6 pt-4">
@@ -253,14 +312,14 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ destiny, onRetry, category 
       {/* --- HIDDEN EXPORT CARD (The Artifact) --- */}
       <div 
         ref={exportRef} 
-        style={{ display: 'none', width: '600px', height: '1000px' }} 
+        style={{ display: 'none', width: '900px', height: '1600px' }} 
         className="bg-[#0a0a12]"
       >
          <div className="w-full h-full relative flex flex-col border-[24px] border-[#151520]">
             {/* Image Area */}
-            <div className="h-[700px] w-full relative overflow-hidden border-b-4 border-[#2a2a3d]">
+            <div className="relative w-full h-[72%] overflow-hidden border-b-4 border-[#2a2a3d]">
                 <img src={destiny.imageBase64} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a12] via-transparent to-transparent opacity-40" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a12] via-transparent to-transparent opacity-15" />
             </div>
 
             {/* Text Area */}

@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Volume2, VolumeX, History, Sparkles, X, LogIn, LogOut, User as UserIcon, Loader2, CheckCircle, AlertCircle, ExternalLink, Copy, BrainCircuit, Fingerprint, Zap } from 'lucide-react'; 
+import { Volume2, VolumeX, History, Sparkles, X, LogIn, LogOut, User as UserIcon, Loader2, CheckCircle, AlertCircle, ExternalLink, Copy, BrainCircuit, Zap } from 'lucide-react'; 
 import LandingScreen from './components/LandingScreen';
 import CategorySelectionScreen from './components/CategorySelectionScreen';
 import SelectionScreen from './components/SelectionScreen';
@@ -322,32 +322,74 @@ const App: React.FC = () => {
       <main className="relative z-10 flex-1 w-full h-full overflow-hidden flex flex-col">
         <AnimatePresence mode="wait">
           {currentStep === 'landing' && (
-            <motion.div key="landing" className="w-full h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, filter: 'blur(10px)' }}>
+            <motion.div
+              key="landing"
+              className="w-full h-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, filter: 'blur(10px)' }}
+              transition={{ duration: 1, ease: 'easeInOut' }}
+            >
               <LandingScreen onStart={handleStart} user={user} onLogin={handleLoginClick} onLogout={logout} />
             </motion.div>
           )}
           {currentStep === 'category' && (
-            <motion.div key="category" className="w-full h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div
+              key="category"
+              className="w-full h-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1, ease: 'easeInOut' }}
+            >
               <CategorySelectionScreen onSelect={handleCategorySelect} />
             </motion.div>
           )}
           {currentStep === 'intro' && (
-            <motion.div key="intro" className="w-full h-full flex items-center justify-center p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div
+              key="intro"
+              className="w-full h-full flex items-center justify-center p-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1, ease: 'easeInOut' }}
+            >
                <MysticPortal />
             </motion.div>
           )}
           {currentStep === 'playing' && currentRoundInfo && (
-            <motion.div key="playing" className="w-full h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div
+              key="playing"
+              className="w-full h-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1, ease: 'easeInOut' }}
+            >
               <SelectionScreen roundInfo={currentRoundInfo} onSelect={handleSelection} />
             </motion.div>
           )}
           {currentStep === 'loading' && (
-            <motion.div key="loading" className="w-full h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div
+              key="loading"
+              className="w-full h-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1, ease: 'easeInOut' }}
+            >
               <LoadingScreen />
             </motion.div>
           )}
           {currentStep === 'result' && (
-            <motion.div key="result" className="w-full h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div
+              key="result"
+              className="w-full h-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1, ease: 'easeInOut' }}
+            >
               <ResultScreen destiny={generatedDestiny} onRetry={handleRetry} category={selectedCategory} />
             </motion.div>
           )}
